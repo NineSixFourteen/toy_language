@@ -5,6 +5,15 @@ impl Evaluator {
     pub (crate) fn eval_jmp(&mut self, cmd:JmpCmd) -> Result<(),StrError>{
         match cmd {
             JmpCmd::GOTO(x) => {let _ = self.jmp_to(x)?;}
+            JmpCmd::IFFal(x) |
+            JmpCmd::IFTru(x) => {
+                let res = self.pop()?;
+                match (cmd,res) {
+                    (JmpCmd::IFFal(x), Value::Boolean(false)) |
+                    (JmpCmd::IFTru(x), Value::Boolean(true)) => {let _ = self.jmp_to(x);}
+                    _ => ()
+                }
+            }
             _ => {
                 self.eval_bin_jmp(cmd)?;
             }
@@ -26,24 +35,8 @@ impl Evaluator {
     fn eval_int_jmp(&mut self, x: i64, y: i64, cmd: JmpCmd) -> Result<(), StrError> {
         match cmd {
             JmpCmd::GOTO(_) => {},
-            JmpCmd::IFLT(l) => {
-                self.jmp_to_cond(l, x < y)?;
-            }
-            JmpCmd::IFGT(l) =>{
-                self.jmp_to_cond(l, x > y)?;
-            }
-            JmpCmd::IFGEQ(l) => {
-                self.jmp_to_cond(l, x >= y)?;
-            }
-            JmpCmd::IFLEQ(l) => {
-                self.jmp_to_cond(l, x <= y)?;
-            }
-            JmpCmd::IFEQ(l) => {
-                self.jmp_to_cond(l, x == y)?;
-            }
-            JmpCmd::IFNEQ(l) =>{
-                self.jmp_to_cond(l, x != y)?;
-            }
+            JmpCmd::IFTru(_) => todo!(),
+            JmpCmd::IFFal(_) => todo!(),
         }
         Ok(())
     }
@@ -72,7 +65,8 @@ fn eval_test_lt_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(21))),
         Command::OCmd(OtherCmd::Push(Value::Int(22))),
-        Command::JCmd(JmpCmd::IFLT(5)),
+        Command::BOp(BinOp::LT),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -89,7 +83,8 @@ fn eval_test_lt_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFLT(5)),
+        Command::BOp(BinOp::LT),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -105,7 +100,8 @@ fn eval_test_gt_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFGT(5)),
+        Command::BOp(BinOp::GT),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -122,7 +118,8 @@ fn eval_test_gt_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(22))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFGT(5)),
+        Command::BOp(BinOp::GT),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -138,7 +135,8 @@ fn eval_test_lteq_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(22))),
         Command::OCmd(OtherCmd::Push(Value::Int(22))),
-        Command::JCmd(JmpCmd::IFLEQ(5)),
+        Command::BOp(BinOp::LTEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -155,7 +153,8 @@ fn eval_test_lteq_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFLT(5)),
+        Command::BOp(BinOp::LTEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -171,7 +170,8 @@ fn eval_test_gteq_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFGEQ(5)),
+        Command::BOp(BinOp::GTEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -188,7 +188,8 @@ fn eval_test_gteq_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(28))),
-        Command::JCmd(JmpCmd::IFGEQ(5)),
+        Command::BOp(BinOp::GTEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -205,7 +206,8 @@ fn eval_test_eq_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFGEQ(5)),
+        Command::BOp(BinOp::EQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -222,7 +224,8 @@ fn eval_test_eq_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFEQ(5)),
+        Command::BOp(BinOp::EQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -239,7 +242,8 @@ fn eval_test_neq_true() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(26))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFNEQ(5)),
+        Command::BOp(BinOp::NEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),
@@ -256,7 +260,8 @@ fn eval_test_neq_false() -> Result<(), StrError> {
     let commands = vec![
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
         Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFNEQ(5)),
+        Command::BOp(BinOp::NEQ),
+        Command::JCmd(JmpCmd::IFTru(6)),
         Command::OCmd(OtherCmd::Push(Value::Int(1))),
         Command::OCmd(OtherCmd::Return),
         Command::OCmd(OtherCmd::Push(Value::Int(5))),

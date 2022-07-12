@@ -14,10 +14,16 @@ impl Evaluator {
 
     pub(crate) fn eval_int(&mut self,x:i64,y:i64, cmd:BinOp) -> Result<(),StrError>{
         match cmd {
-            BinOp::Add => self.stack.push(Value::Int(x + y)),
+            BinOp::Add   => self.stack.push(Value::Int(x + y)),
             BinOp::Minus => self.stack.push(Value::Int(x - y)),
-            BinOp::Mul => self.stack.push(Value::Int(x * y)),
-            BinOp::Div => self.stack.push(Value::Int(x / y))
+            BinOp::Mul   => self.stack.push(Value::Int(x * y)),
+            BinOp::Div   => self.stack.push(Value::Int(x / y)),
+            BinOp::LT    => self.stack.push(Value::Boolean(x < y)),
+            BinOp::GT    => self.stack.push(Value::Boolean(x > y)),
+            BinOp::LTEQ  => self.stack.push(Value::Boolean(x <= y)),
+            BinOp::GTEQ  => self.stack.push(Value::Boolean(x >= y)),
+            BinOp::EQ    => self.stack.push(Value::Boolean(x == y)),
+            BinOp::NEQ   => self.stack.push(Value::Boolean(x != y))
         }
         Ok(())
     }

@@ -23,7 +23,7 @@ pub(crate) enum Token {
 pub(crate) struct Tokenizer<'a> {
     code: &'a str, 
     pos: usize,
-    tokens : Vec<Token>
+    pub(crate) tokens : Vec<Token>
 }
 
 impl<'a> Tokenizer<'a> {
@@ -93,7 +93,8 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn match_word(&mut self, word :&str ){
-        match word {
+        let wo = word.trim();
+        match wo {
             "Print"  => self.tokens.push(Token::Print),
             "int"    => self.tokens.push(Token::Int),
             "String" => self.tokens.push(Token::String),
@@ -103,7 +104,7 @@ impl<'a> Tokenizer<'a> {
             "return" => self.tokens.push(Token::Return),
             "def"    => self.tokens.push(Token::Def),
             ""       => {}
-            _        => self.tokens.push(Token::Value(word.into()))
+            _        => self.tokens.push(Token::Value(word.trim().into()))
         }
     }
 

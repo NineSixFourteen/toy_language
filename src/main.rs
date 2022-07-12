@@ -2,7 +2,8 @@
 pub mod stack_machine;
 #[allow(dead_code)]
 pub mod parser;
-
+pub mod tests;
+pub mod compiler;
 fn main() {
     let z = "900 500";
     let a = &z[..1];

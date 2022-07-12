@@ -63,7 +63,17 @@ impl Evaluator {
     }
 
     fn pop(&mut self) -> Result<Value, StrError> {
-        self.stack.pop().ok_or(StrError::NothingToPop)
+        let x = self.stack.pop().ok_or(StrError::NothingToPop);
+        match &x {
+            Ok(x) => {}
+            Err(e) => {
+                for val in &self.stack {
+                    print!("<<<>{:?}",val);
+                }
+                println!("<<<>{:?}",self.commands.get(self.point));
+            }   
+        }
+        x
     }
 
     pub(crate) fn eval(&mut self) -> Result<Value, StrError> {
@@ -79,6 +89,17 @@ impl Evaluator {
                             let res = self.vars.get(&name).ok_or(StrError::NoSuchVar)?;
                             self.stack.push(res.clone());
                         }
+                        VarCmd::IncVar(name,val) => {
+                            let res = self.vars.get(&name).ok_or(StrError::NoSuchVar)?;
+                            match (res, val) {
+                                (Value::Int(x), Value::Int(y)) => 
+                                    _ = self.vars.insert(name, Value::Int(x + y)),
+                                (Value::String(x), Value::String(y)) => 
+                                    _ = self.vars.insert(name, Value::String(x.clone() + &y)),
+                                _ => panic!()
+                            }
+                        },
+                        VarCmd::DecVar(name, val) => {},
                     }
                 }
                 Command::BOp(x) => {
@@ -99,12 +120,33 @@ impl Evaluator {
                             let res = self.pop()?;
                             return Ok(res);
                         }
+                        OtherCmd::Print => {
+                            let res = self.pop()?;
+                            self.printValue(res)?;
+                        },
+                        OtherCmd::Not => {
+                            let res = self.pop()?;
+                            match res {
+                                Value::Boolean(x) => self.stack.push(Value::Boolean(!x)),
+                                _ => panic!()
+                            }
+                        }
                     }
                 }
             } 
             self.next_cmd();
         }
         Ok(Value::Nothing)
+    }
+
+    fn printValue(&self, val : Value) -> Result<(), StrError>{
+        match val {
+            Value::Nothing => todo!(),
+            Value::Int(x) => println!(">{}",x),
+            Value::String(x) => println!(">{}",x),
+            Value::Boolean(x) => println!(">{}",x)
+        }
+        Ok(())
     }
 
 }

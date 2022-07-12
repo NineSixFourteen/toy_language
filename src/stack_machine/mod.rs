@@ -2,7 +2,7 @@
 pub(crate) mod Evaluator;
 
 
-#[derive(Clone,PartialEq, Eq)]
+#[derive(Debug, Clone,PartialEq, Eq)]
 pub struct Function {
     params : Vec<String>,
     body : Vec<Command> // The commands for the function
@@ -24,7 +24,8 @@ impl Function {
 pub(crate) enum Value {
     Nothing,
     Int(i64),
-    String(String)
+    String(String),
+    Boolean(bool)
 }
 
 #[derive(Debug,Clone,PartialEq, Eq)]
@@ -39,7 +40,7 @@ pub(crate) enum StrError {
     OperandNotSupported
 }
 
-#[derive(Clone,PartialEq, Eq)]
+#[derive(Clone,PartialEq, Eq,Debug)]
 pub(crate) enum Command {
     VCmd(VarCmd),
     BOp(BinOp),
@@ -50,31 +51,38 @@ pub(crate) enum Command {
 #[derive(Debug,Clone,PartialEq, Eq)]
 pub(crate) enum VarCmd {
     SetVar(String),
-    GetVar(String)
+    GetVar(String),
+    IncVar(String,Value),
+    DecVar(String,Value)
 }
 
-#[derive(Clone,PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum BinOp {
     Add,
     Minus,
     Mul,
-    Div
+    Div,
+    LT,
+    GT,
+    LTEQ,
+    GTEQ,
+    EQ,
+    NEQ
 }
 
-#[derive(Clone,PartialEq, Eq)]
+
+#[derive(Debug, Clone,PartialEq, Eq)]
 pub(crate) enum JmpCmd {
     GOTO(usize),
-    IFLT(usize),
-    IFGT(usize),
-    IFGEQ(usize),
-    IFLEQ(usize),
-    IFEQ(usize),
-    IFNEQ(usize)
+    IFTru(usize),
+    IFFal(usize)
 }
 
-#[derive(Clone,PartialEq, Eq)]
+#[derive(Debug, Clone,PartialEq, Eq)]
 pub(crate) enum OtherCmd {
     Pop, 
+    Not,
+    Print,
     ThrowError(StrError),
     Func(Function),
     Push(Value),
