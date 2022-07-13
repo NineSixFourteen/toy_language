@@ -3,6 +3,7 @@ pub mod stack_machine;
 #[allow(dead_code)]
 pub mod parser;
 pub mod tests;
+#[allow(dead_code)]
 pub mod compiler;
 fn main() {
     let z = "900 500";

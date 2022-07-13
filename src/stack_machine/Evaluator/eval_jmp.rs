@@ -5,17 +5,12 @@ impl Evaluator {
     pub (crate) fn eval_jmp(&mut self, cmd:JmpCmd) -> Result<(),StrError>{
         match cmd {
             JmpCmd::GOTO(x) => {let _ = self.jmp_to(x)?;}
-            JmpCmd::IFFal(x) |
-            JmpCmd::IFTru(x) => {
+            JmpCmd::IFFal(_) |
+            JmpCmd::IFTru(_) => {
                 let res = self.pop()?;
-                match (cmd,res) {
-                    (JmpCmd::IFFal(x), Value::Boolean(false)) |
-                    (JmpCmd::IFTru(x), Value::Boolean(true)) => {let _ = self.jmp_to(x);}
-                    _ => ()
-                }
-            }
-            _ => {
-                self.eval_bin_jmp(cmd)?;
+                if let (JmpCmd::IFFal(x), Value::Boolean(false)) |
+                        (JmpCmd::IFTru(x), Value::Boolean(true)) = 
+                           (cmd,res) {let _ = self.jmp_to(x)?;}
             }
         }
         Ok(())
@@ -32,7 +27,7 @@ impl Evaluator {
         }
         Ok(())
     }
-    fn eval_int_jmp(&mut self, x: i64, y: i64, cmd: JmpCmd) -> Result<(), StrError> {
+    fn eval_int_jmp(&mut self, _x: i64, _y: i64, cmd: JmpCmd) -> Result<(), StrError> {
         match cmd {
             JmpCmd::GOTO(_) => {},
             JmpCmd::IFTru(_) => todo!(),

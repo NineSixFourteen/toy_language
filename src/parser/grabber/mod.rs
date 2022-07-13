@@ -41,7 +41,7 @@ impl Grabber{
         let (y, rem) = self.grab_brac(rem);
         ((x,y),rem)
     }
-    pub(crate) fn grab_prec2(&self, tokens : Vec<Token>) -> ( (Vec<Token>,Vec<Token>) ) {
+    pub(crate) fn grab_prec2(&self, tokens : Vec<Token>) -> (Vec<Token>,Vec<Token>) {
         let pos = tokens
         .iter()
         .position(

@@ -1,13 +1,11 @@
 use crate::{parser::{Line, Node, BoolNode}, stack_machine::*};
 
 use super::Compiler;
-struct num {
-    l : usize
-}
+
 impl Compiler{
 
     pub(crate) fn complile_init_var(&mut self, line : Line)  {
-        if let Line::InitVar(ty, name, val) = line {
+        if let Line::InitVar(_ty, name, val) = line {
             self.compile_expr(val);
             self.commands.push(Command::VCmd(VarCmd::SetVar(name)));
         } else {
@@ -25,14 +23,14 @@ impl Compiler{
     }
 
     pub(crate) fn compile_for(&mut self, line: Line)  {
-        if let Line::For(name, startVal, endVal, lines) = line { 
-            self.compile_expr(startVal);
+        if let Line::For(name, start_val, end_val, lines) = line { 
+            self.compile_expr(start_val);
             self.commands.push(Command::VCmd(VarCmd::SetVar(name.clone())));
             let pos = self.commands.len() ;
             self.compile_lines(lines);
             self.commands.push(Command::VCmd(VarCmd::IncVar(name.clone(), Value::Int(1))));
             self.commands.push(Command::VCmd(VarCmd::GetVar(name)));
-            self.compile_expr(endVal);
+            self.compile_expr(end_val);
             self.commands.push(Command::BOp(BinOp::LT));
             self.commands.push(Command::JCmd(JmpCmd::IFTru(pos )));
        
@@ -109,9 +107,9 @@ impl Compiler{
         match y {
             Command::JCmd(z) => {
                 match z {
-                    JmpCmd::GOTO( x) => *y = Command::JCmd(JmpCmd::GOTO(loc)),
-                    JmpCmd::IFTru(x) => *y = Command::JCmd(JmpCmd::IFTru(loc)),
-                    JmpCmd::IFFal(x) => *y = Command::JCmd(JmpCmd::IFFal(loc))
+                    JmpCmd::GOTO( _) => *y = Command::JCmd(JmpCmd::GOTO(loc)),
+                    JmpCmd::IFTru(_) => *y = Command::JCmd(JmpCmd::IFTru(loc)),
+                    JmpCmd::IFFal(_) => *y = Command::JCmd(JmpCmd::IFFal(loc))
                 };
             }
             Command::BOp(_) |
@@ -140,8 +138,8 @@ impl Compiler{
                     _ => panic!(),
                 }
             }
-            BoolNode::And(x, y) |
-            BoolNode::Or( x, y) => {
+            BoolNode::And(_x,_y) |
+            BoolNode::Or( _x, _y) => {
                 todo!()
             }
             BoolNode::Not(_) => todo!(),

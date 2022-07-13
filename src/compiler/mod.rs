@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::stack_machine::{Command, Evaluator::Evaluator,Function};
 use crate::parser::{Program, Function as OtherFunction, Line};
+#[allow(dead_code)]
 mod cmpl_ln;
 
 pub(crate) struct Compiler {
@@ -32,12 +33,12 @@ impl Compiler {
 
     fn compile_fn(&self, func : OtherFunction ) -> (String,Function) {
         match func {
-            OtherFunction{ name, ty,  body, params } => {
+            OtherFunction{ name, ty: _,  body, params } => {
                 let f : Function;
                 let mut comp = Compiler{ commands: Vec::new() };
                 comp.compile_lines(body);
                 f = Function::new(
-                  params.iter().map(|(a,b)| a.clone()).collect(), 
+                  params.iter().map(|(a,_b)| a.clone()).collect(), 
                     comp.commands
                 );
                 (name , f)

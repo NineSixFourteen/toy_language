@@ -74,8 +74,8 @@ impl Evaluator {
     fn pop(&mut self) -> Result<Value, StrError> {
         let x = self.stack.pop().ok_or(StrError::NothingToPop);
         match &x {
-            Ok(x) => {}
-            Err(e) => {
+            Ok(_x) => {}
+            Err(_e) => {
                 for val in &self.stack {
                     print!("<<<>{:?}",val);
                 }
@@ -108,7 +108,7 @@ impl Evaluator {
                                 _ => panic!()
                             }
                         },
-                        VarCmd::DecVar(name, val) => {},
+                        VarCmd::DecVar(_name, _val) => {},
                     }
                 }
                 Command::BOp(x) => {
