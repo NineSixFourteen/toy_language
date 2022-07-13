@@ -1,9 +1,8 @@
 // Test completeness of program
 #[cfg(test)]
 mod tests {
-    use std::collections::btree_map::Values;
 
-    use crate::{parser::{*, tokenizer::Tokenizer, self}, compiler::{self, Compiler}, stack_machine::{Evaluator, StrError,Value}};
+    use crate::{parser::{*, tokenizer::Tokenizer}, compiler::{Compiler}, stack_machine::{Evaluator, StrError,Value}};
 
     #[test]
     fn test_for() {
@@ -25,6 +24,7 @@ mod tests {
             ]
         ));
     }
+
     #[test]
     fn test_if() {
         let parser = Parser{};
@@ -44,6 +44,7 @@ mod tests {
                 ])   
         );
     }
+
     #[test]
     fn test_full_ting() -> Result<(), StrError> {
         let string = 
@@ -78,6 +79,7 @@ mod tests {
         ";
         test_code(string, Value::Int(110))
     }
+
     #[test]
     fn test_tingy_wingy() -> Result<(), StrError> {
         let string = 
@@ -104,6 +106,41 @@ mod tests {
         ";
         test_code(string, Value::Int(199))
     }
+
+    #[test]
+    fn test_whole() -> Result<(),StrError> {
+        let message = 
+        "
+            def int main() {
+                Print bob(lol(lol(lol(lol(lol(lol(10)))))) , 22); 
+                Print 111; 
+                return 100;
+            }
+            
+            def int bob(int x , int y) {
+                return 10 + x + y;
+            }
+
+            def int lol(int x) {
+                return x;
+            }
+        ";
+        test_prog(message, Value::Int(100))
+    }
+
+    fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
+        let parser = Parser{};
+        let mut tokenizer = Tokenizer::new(message);
+        tokenizer.tokenize();
+        let tokens = tokenizer.tokens;
+        let x = parser.parse(tokens);
+        let z = Compiler{commands : vec![] };
+        let mut eval = z.compile(x);
+        let res = eval.eval()?;
+        assert_eq!(res, val);
+        Ok(())
+    }
+
 
     fn test_code(string : &str, val : Value) -> Result<(),StrError> {
         let parser = Parser{};

@@ -5,11 +5,14 @@ mod eval_jmp;
 use std::collections::HashMap;
 use super::*;
 
+
+
 pub(crate) struct Evaluator {
-    vars : HashMap<String,Value>,
-    stack : Vec<Value>,
-    point : usize,
-    commands : Vec<Command>
+    pub vars : HashMap<String,Value>,
+    pub stack : Vec<Value>,
+    pub point : usize,
+    pub main : Function,
+    pub funcs : HashMap<String, Function>
 }
 
 impl Evaluator {
@@ -17,18 +20,20 @@ impl Evaluator {
     pub fn new () -> Evaluator{
         Evaluator {
             stack : Vec::new(),
-            vars : HashMap::new(),
+            vars  : HashMap::new(),
             point : 0,
-            commands : Vec::new()
+            main  : Function::new(Vec::new(), Vec::new()),
+            funcs : HashMap::new()
         }
     }
     
     pub(crate) fn new_e(commands : Vec<Command>) -> Evaluator{
         Evaluator {
             stack : Vec::new(),
-            vars : HashMap::new(),
+            vars  : HashMap::new(),
             point : 0,
-            commands
+            main  : Function { params: vec![], body: commands },
+            funcs : HashMap::new()
         }
     }
     
@@ -36,19 +41,23 @@ impl Evaluator {
         self.point += 1;
     }
 
+    fn commands(&self) -> &Vec<Command> {
+        &self.main.body
+    }
+
     fn get_cur(& mut self) -> Command {
-        self.commands.get(self.point).unwrap_or(&Command::OCmd(OtherCmd::ThrowError(StrError::CommandOutOfBounds))).clone()
+        self.commands().get(self.point).unwrap_or(&Command::OCmd(OtherCmd::ThrowError(StrError::CommandOutOfBounds))).clone()
     }
 
     fn has_next(& mut self) -> bool {
-        self.point < self.commands.len()
+        self.point < self.commands().len()
     }
 
     fn jmp_to(& mut self, x: usize) -> Result<(), StrError>{
         if x == 0 {
             self.point = 0 ; 
             return Err(StrError::GOTOZero);
-        } else if x >= self.commands.len() {
+        } else if x >= self.commands().len() {
             return Err(StrError::GOTOOutOfBounds)
         } 
         self.point = x - 1;
@@ -70,7 +79,7 @@ impl Evaluator {
                 for val in &self.stack {
                     print!("<<<>{:?}",val);
                 }
-                println!("<<<>{:?}",self.commands.get(self.point));
+                println!("<<<>{:?}",self.commands().get(self.point));
             }   
         }
         x

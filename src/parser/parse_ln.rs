@@ -1,3 +1,4 @@
+
 use super::*;
 impl Parser {
     
@@ -13,7 +14,6 @@ impl Parser {
         let name = tokens.get(1).unwrap().clone();
         let (line,rem) = grabber.grab_tokens_before(tokens, Token::LCur);
         let (body, rem) = grabber.grab_brac(rem);
-  
         let parts = grabber.sep_on_comma(line[3..].to_vec());
         let mut nodes = Vec::new();
         for part in parts {
@@ -75,32 +75,120 @@ impl Parser {
         (Line::InitVar(ty, name , expr), rem)
     }
 
-    fn parse_expr(&self,tokens: Vec<Token>) -> Node {
-        for token in &tokens {
-            println!("<<{:?}",token);
-        }
-        if tokens.len() == 1{
+
+    fn parse_expr(&self, mut tokens: Vec<Token>) -> Node {
+        if tokens.len() == 1 {
             return self.parse_val(tokens.first().unwrap().clone());
         }
-        let lhs = Box::new(self.parse_val(tokens.first().unwrap().clone()));
-        let rhs = Box::new(self.parse_expr(tokens[2..].to_vec()));
+        let lhs : Node ; 
         match tokens.get(1).unwrap() {
-            Token::Plus => Node::Add(lhs,rhs),
-            Token::Minus => Node::Sub(lhs,rhs),
-            Token::Mul | Token::Div => {
-                return self.parse_prec2(tokens);
+            Token::LBrac => {
+                (lhs, tokens) = self.parse_func(tokens);
             }
-            Token::And => todo!(),
-            Token::Or => todo!(),
+            _ => {
+                lhs = self.parse_val(tokens.first().unwrap().clone());
+                tokens =  tokens[1..].to_vec();
+            }
+        }
+        if tokens.len() == 0 {
+            return lhs;
+        }
+        match tokens.first().unwrap() {
+            Token::Plus  => Node::Add(Box::new(lhs), Box::new(self.parse_expr(tokens[1..].to_vec()))),
+            Token::Minus => Node::Sub(Box::new(lhs), Box::new(self.parse_expr(tokens[1..].to_vec()))),
+            Token::Mul   |
+            Token::Div   => self.parse_prec2(lhs ,tokens),
+            _ => panic!()
+        }
+
+    }
+
+    fn parse_prec2(&self, lh : Node, tokens: Vec<Token>) -> Node {
+        let grabber = Grabber{};
+        let (prec2, rem) = grabber.grab_prec2(tokens[1..].to_vec());
+        let lhs;
+        let rhs = self.parse_prec2_helper(prec2);
+        match tokens.first().unwrap() {
+            Token::Mul => {
+                lhs = Node::Mul(Box::new(lh), Box::new(rhs));
+            }
+            Token::Div => {
+                lhs = Node::Div(Box::new(lh), Box::new(rhs));
+
+            }
+            _ => panic!()
+        }
+        if rem.len() == 0 {
+            return lhs;
+        }
+        match rem.first().unwrap(){
+            Token::Plus  => Node::Add(Box::new(lhs), Box::new(self.parse_expr(rem[1..].to_vec()))),
+            Token::Minus => Node::Sub(Box::new(lhs), Box::new(self.parse_expr(rem[1..].to_vec()))),
+            _ => unreachable!()
+        }
+    }
+
+    fn parse_prec2_helper(&self, mut tokens : Vec<Token> ) -> Node {
+        if tokens.len() == 1 {
+            return self.parse_val(tokens.first().unwrap().clone());
+        }
+        let lhs : Node ; 
+        match tokens.get(1).unwrap() {
+            Token::LBrac => {
+                (lhs, tokens) = self.parse_func(tokens);
+            }
+            _ => {
+                lhs = self.parse_val(tokens.first().unwrap().clone());
+                tokens =  tokens[1..].to_vec();
+            }
+        }
+        if tokens.len() == 0 {
+            return lhs;
+        }
+        match tokens.first().unwrap() {
+            Token::Mul => Node::Mul(Box::new(lhs), Box::new(self.parse_prec2_helper(tokens))),
+            Token::Div => Node::Div(Box::new(lhs), Box::new(self.parse_prec2_helper(tokens))),
             _ => panic!()
         }
     }
 
-    fn extrct_str(&self, t : Token) -> String {
+
+    pub(crate) fn parse_func(&self, tokens : Vec<Token> ) -> (Node, Vec<Token>)  {
+        let name = self.extrct_str(tokens.first().unwrap().clone());
+        let grabber = Grabber{};
+        let (line, rem ) = grabber.grab_brac(tokens[1..].to_vec());
+        let nodes;
+        if line.len() != 0 {
+            nodes = self.parse_param(line);
+        } else {
+            nodes = Vec::new()
+        }
+        (Node::FCall(name, nodes), rem)
+    }
+
+    fn parse_param(&self, tokens : Vec<Token> ) -> Vec<Node> {
+        let grabber = Grabber{};
+        let ndes = grabber.sep_on_comma(tokens);
+        let mut nodes = Vec::new();
+        for nde in ndes {
+            nodes.push(self.parse_expr(nde));
+        } 
+        nodes
+    }
+
+    pub(crate) fn extrct_str(&self, t : Token) -> String {
         if let Token::Value(x) = t {
             x
         } else {
-            panic!()
+            panic!("{:?}",t)
+        }
+    }
+    
+    pub(crate) fn extrct_prm(&self, t: Token) -> Primitive {
+        match t {
+            Token::Int => Primitive::Int,
+            Token::String => Primitive::String,
+            _ => panic!("{:?}",t)
         }
     }
 
@@ -111,37 +199,7 @@ impl Parser {
         }
     }
 
-    fn parse_prec2(&self, tokens: Vec<Token>) -> Node {
-        let grabber = Grabber{};
-        let (prec2, rem ) = grabber.grab_prec2(tokens);
-        let lhs = Box::new(self.parse_prec2_helper(prec2));
-        if rem.len() < 2 {
-            return *lhs;
-        }
-        let rhs = Box::new(self.parse_expr(rem[1..].to_vec()));
-        match rem.first().unwrap() {
-            Token::Plus => Node::Add(lhs,rhs),
-            Token::Minus => Node::Sub(lhs,rhs),
-            Token::And =>todo!(),
-            Token::Or => todo!(),
-            _ => panic!()
-        }
-    }
-
-    fn parse_prec2_helper(&self, tokens: Vec<Token>) -> Node {
-        if tokens.len() == 1 {
-            return self.parse_val(tokens.first().unwrap().clone());
-        }
-        let lhs = Box::new(self.parse_val(tokens.first().unwrap().clone())); 
-        let rhs = Box::new(self.parse_prec2_helper(tokens[2..].to_vec()));
-        match tokens.get(1).unwrap() {
-            Token::Mul => Node::Mul(lhs,rhs),
-            Token::Div => Node::Div(lhs,rhs),
-            _ => panic!()
-        }
-        
-    }
-
+   
     fn parse_bool_expr(&self, tokens:Vec<Token>) -> BoolNode {
         let grabber = Grabber{};
         let (bef, after) = grabber.sep_on_bool_op1(tokens);

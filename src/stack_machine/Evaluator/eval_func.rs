@@ -3,7 +3,8 @@ pub(crate) use crate::stack_machine::{Function, StrError};
 use super::Evaluator;
 
 impl Evaluator {
-    pub(crate) fn eval_func(&mut self, func: Function ) -> Result<(), StrError> {
+    pub(crate) fn eval_func(&mut self, x : String) -> Result<(), StrError> {
+        let func = self.funcs.get(&x).unwrap().clone();
         match func {
             Function { params, body } => {
                 let mut ev = Evaluator::new_e(body);
@@ -44,18 +45,18 @@ fn eval_test_func() -> Result<(),StrError> {
         Command::OCmd(OtherCmd::Push(Value::Int(100))),
         Command::OCmd(OtherCmd::Push(Value::Int(100))),
         Command::OCmd(
-            OtherCmd::Func(
+            OtherCmd::Func("bob".into())),
+        Command::OCmd(OtherCmd::Return)
+    ];
+    let mut ev = Evaluator::new_e(commands);
+    ev.funcs.insert("bob".into(), 
                 Function::new(
                  vec!["a".into(),"b".into()] ,
                  vec![Command::VCmd(VarCmd::GetVar("a".into())),
                    Command::VCmd(VarCmd::GetVar("b".into())),
                    Command::BOp(BinOp::Add),
                    Command::OCmd(OtherCmd::Return)
-            ]
-        ))),
-        Command::OCmd(OtherCmd::Return)
-    ];
-    let mut ev = Evaluator::new_e(commands);
+            ]));
     let result = ev.eval()?;
     assert_eq!(Value::Int(200), result);
     Ok(())

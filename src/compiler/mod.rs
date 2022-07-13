@@ -1,5 +1,7 @@
-use crate::stack_machine::Command;
-use crate::parser::{Program, Function, Line};
+use std::collections::HashMap;
+
+use crate::stack_machine::{Command, Evaluator::Evaluator,Function};
+use crate::parser::{Program, Function as OtherFunction, Line};
 mod cmpl_ln;
 
 pub(crate) struct Compiler {
@@ -8,12 +10,39 @@ pub(crate) struct Compiler {
 
 impl Compiler {
 
-    fn compile(&self, prog : Program){
-        todo!()
+    pub(crate) fn compile(&self, prog : Program) -> Evaluator {
+        match prog {
+            Program{ main, methods } => {
+                let z : HashMap<String, Function> = methods
+                .iter()
+                .map(|x| self.compile_fn(x.clone()))
+                .collect();
+                let (_ , main) = self.compile_fn(main);
+                Evaluator{
+                    vars: HashMap::new(),
+                    stack: Vec::new(),
+                    point: 0,
+                    main: main,
+                    funcs: z
+                }
+            }
+        }
     }
+    
 
-    fn compile_fn(&self, func : Function )  {
-        todo!()
+    fn compile_fn(&self, func : OtherFunction ) -> (String,Function) {
+        match func {
+            OtherFunction{ name, ty,  body, params } => {
+                let f : Function;
+                let mut comp = Compiler{ commands: Vec::new() };
+                comp.compile_lines(body);
+                f = Function::new(
+                  params.iter().map(|(a,b)| a.clone()).collect(), 
+                    comp.commands
+                );
+                (name , f)
+            }
+        }
     }
 
     pub(crate) fn compile_lines(&mut self, lines: Vec<Line> ) {
@@ -33,5 +62,4 @@ impl Compiler {
             Line::FCall(_) => todo!(),
         }
     }
-
 }

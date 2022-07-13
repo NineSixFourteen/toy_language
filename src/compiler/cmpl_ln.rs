@@ -84,7 +84,12 @@ impl Compiler{
                 }
             }
             Node::LoadVar(x) => self.commands.push(Command::VCmd(VarCmd::GetVar(x))),
-            Node::FCall(_, _) => todo!(),
+            Node::FCall(x, nodes) => {
+                for node in nodes {
+                    self.compile_expr(node);
+                }
+                self.commands.push(Command::OCmd(OtherCmd::Func(x)));
+            }
             Node::Nothing => panic!(),
         }
     }

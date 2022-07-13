@@ -9,7 +9,6 @@ pub struct Function {
 }
 
 impl Function {
-    
     pub(crate)fn new( params : Vec<String> , body : Vec<Command>  ) -> Function {
         Function{
             params,
@@ -18,7 +17,6 @@ impl Function {
     }
     
 }
-
 
 #[derive(Debug,Clone,PartialEq, Eq)]
 pub(crate) enum Value {
@@ -70,7 +68,6 @@ pub(crate) enum BinOp {
     NEQ
 }
 
-
 #[derive(Debug, Clone,PartialEq, Eq)]
 pub(crate) enum JmpCmd {
     GOTO(usize),
@@ -84,7 +81,7 @@ pub(crate) enum OtherCmd {
     Not,
     Print,
     ThrowError(StrError),
-    Func(Function),
+    Func(String),
     Push(Value),
     Return 
 }
