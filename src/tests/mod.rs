@@ -11,7 +11,12 @@ mod tests {
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let (x,_) = parser.parse_for(tokens);
+        let y = parser.parse_for(tokens);
+        let mut x = Line::Print(Node::Nothing) ; 
+        match y {
+            Ok((z,_)) => x = z,
+            Err(_) => {},
+        }
         assert_eq!(x,
         Line::For(
             "i".into(),
@@ -32,7 +37,12 @@ mod tests {
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let (x,_) = parser.parse_if(tokens);
+        let y = parser.parse_if(tokens);
+        let mut x = Line::Print(Node::Nothing); 
+        match y {
+            Ok((z,_)) => x = z,
+            Err(_) => {},
+        }
         assert_eq!(x,
             Line::If(
                 BoolNode::LThan(
@@ -133,7 +143,12 @@ mod tests {
         let mut tokenizer = Tokenizer::new(message);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let x = parser.parse(tokens);
+        let y = parser.parse(tokens);
+        let x ; 
+        match y {
+            Ok(z) => x = z,
+            Err(_) => panic!(),
+        }
         let z = Compiler{commands : vec![] };
         let mut eval = z.compile(x);
         let res = eval.eval()?;
@@ -147,7 +162,12 @@ mod tests {
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let (x, _) = parser.parse_lines(tokens);
+        let y = parser.parse_lines(tokens);
+        let x ; 
+        match y {
+            Ok((z,_)) => x = z,
+            Err(_) => panic!(),
+        }
         let mut compiler = Compiler{
             commands : Vec::new()
         };
