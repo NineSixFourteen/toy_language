@@ -1,0 +1,13 @@
+def int main() {
+    Print bob(lol(lol(lol(lol(lol(lol(10)))))) , 22); 
+    Print 111; 
+    return 100;
+}
+            
+def int bob(int x , int y) {
+    return 10 + x + y;
+}
+
+def int lol(int x) {
+    return x;
+}

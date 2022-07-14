@@ -6,12 +6,11 @@ mod tests {
 
     #[test]
     fn test_for() {
-        let parser = Parser{};
         let string = "for i, 0, 15 {Print 100;}";
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let y = parser.parse_for(tokens);
+        let y = Parser::parse_for(tokens);
         let mut x = Line::Print(Node::Nothing) ; 
         match y {
             Ok((z,_)) => x = z,
@@ -32,12 +31,11 @@ mod tests {
 
     #[test]
     fn test_if() {
-        let parser = Parser{};
         let string = "if i < 10 {Print 100;}";
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let y = parser.parse_if(tokens);
+        let y = Parser::parse_if(tokens);
         let mut x = Line::Print(Node::Nothing); 
         match y {
             Ok((z,_)) => x = z,
@@ -139,18 +137,16 @@ mod tests {
     }
 
     fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
-        let parser = Parser{};
         let mut tokenizer = Tokenizer::new(message);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let y = parser.parse(tokens);
+        let y = Parser::parse(tokens);
         let x ; 
         match y {
             Ok(z) => x = z,
             Err(_) => panic!(),
         }
-        let z = Compiler{commands : vec![] };
-        let mut eval = z.compile(x);
+        let mut eval = Compiler::compile(x);
         let res = eval.eval()?;
         assert_eq!(res, val);
         Ok(())
@@ -158,11 +154,10 @@ mod tests {
 
 
     fn test_code(string : &str, val : Value) -> Result<(),StrError> {
-        let parser = Parser{};
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
-        let y = parser.parse_lines(tokens);
+        let y = Parser::parse_lines(tokens);
         let x ; 
         match y {
             Ok((z,_)) => x = z,

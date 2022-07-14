@@ -62,7 +62,8 @@ pub(crate) enum ParseError {
     ExpectButGot(String, Token),
     NoClosingBracket,
     NotValidParamter,
-    CantFindToken(Token)
+    CantFindToken(Token),
+    NoMainFunction
 
 } 
 
@@ -71,9 +72,9 @@ pub(crate) struct Parser {}
 
 impl Parser {
 
-    pub fn parse(&self, tokens: Vec<Token> ) -> Result<Program,ParseError>{
-        let (_, funcs) = self.parse_fns(tokens)?;
-        let pos = funcs.iter().position(|x| x.name.eq("main".into())).unwrap();
+    pub fn parse(tokens: Vec<Token> ) -> Result<Program,ParseError>{
+        let (_, funcs) = Parser::parse_fns(tokens)?;
+        let pos = funcs.iter().position(|x| x.name.eq("main".into())).ok_or(ParseError::NoMainFunction)?;
         Ok(Program { 
             main: funcs.get(pos).unwrap().clone(), 
             methods: {
@@ -84,24 +85,27 @@ impl Parser {
         })
     }
 
-    fn parse_fns(&self, mut tokens: Vec<Token>) -> Result<(Vec<Token> , Vec<Function>),ParseError> {
+    fn parse_fns(mut tokens: Vec<Token>) -> Result<(Vec<Token> , Vec<Function>),ParseError> {
         let mut funcs = Vec::new();
-        while tokens.len() != 0 && tokens.first().unwrap() == &Token::Def  {
-            let (func, rem) = self.parse_fn(tokens)?;
+        while tokens.len() != 0 {
+            if tokens.first().unwrap() != &Token::Def {
+                return Err(ParseError::ExpectButGot("Def".into(), tokens.first().unwrap().clone()));
+            }
+            let (func, rem) = Parser::parse_fn(tokens)?;
             tokens = rem;
             funcs.push(func);
         }
         Ok((tokens,funcs))
     }
 
-    fn parse_fn(&self, tokens: Vec<Token> ) -> Result<(Function , Vec<Token>),ParseError> {
+    fn parse_fn( tokens: Vec<Token> ) -> Result<(Function , Vec<Token>),ParseError> {
         let y = Grabber{};
         let ((start,body), rem ) = y.grab_fn(tokens)?;
-        let ty = self.extrct_prm(start.get(1).unwrap().clone())?;
-        let name = self.extrct_str(start.get(2).unwrap().clone())?;
+        let ty = Parser::extrct_prm(start.get(1).unwrap().clone())?;
+        let name = Parser::extrct_str(start.get(2).unwrap().clone())?;
         let parms = y.sep_on_comma(start[4..start.len() - 1].into())?;
-        let params = self.parse_into_params(parms)?; 
-        let (body, _ ) = self.parse_lines(body)?;
+        let params = Parser::parse_into_params(parms)?; 
+        let (body, _ ) = Parser::parse_lines(body)?;
         let func = Function{
             name,
             ty,
@@ -111,40 +115,40 @@ impl Parser {
         Ok((func, rem))
     }
 
-    pub(crate) fn parse_lines(&self, mut tokens: Vec<Token>) -> Result<(Vec<Line>, Vec<Token>),ParseError> {
+    pub(crate) fn parse_lines(mut tokens: Vec<Token>) -> Result<(Vec<Line>, Vec<Token>),ParseError> {
         let mut x = Vec::new();
         while !tokens.is_empty(){
-            let (line, rem ) = self.parse_line(tokens)?;
+            let (line, rem ) = Parser::parse_line(tokens)?;
             tokens = rem;
             x.push(line);
         }
         Ok((x,tokens))
     }
 
-    fn parse_line(&self, tokens: Vec<Token> ) -> Result<(Line,Vec<Token>),ParseError> {
+    fn parse_line( tokens: Vec<Token> ) -> Result<(Line,Vec<Token>),ParseError> {
         match tokens.first().unwrap() {
-            Token::Print => self.parse_print(tokens),
-            Token::For => self.parse_for(tokens),
-            Token::If => self.parse_if(tokens),
+            Token::Print => Parser::parse_print(tokens),
+            Token::For => Parser::parse_for(tokens),
+            Token::If => Parser::parse_if(tokens),
             Token::Else => todo!(),
-            Token::Return => self.parse_return(tokens),
-            Token::Int | Token::String => self.parse_init_var(tokens),
-            _ => self.parse_non_line(tokens)
+            Token::Return => Parser::parse_return(tokens),
+            Token::Int | Token::String => Parser::parse_init_var(tokens),
+            _ => Parser::parse_non_line(tokens)
         }
     }
 
-    fn parse_non_line(&self,tokens : Vec<Token>) -> Result<(Line, Vec<Token>), ParseError> {
+    fn parse_non_line(tokens : Vec<Token>) -> Result<(Line, Vec<Token>), ParseError> {
         if tokens.len() < 2 {
             panic!("To small")
         }
         match tokens.get(1).unwrap() {
-            Token::LBrac => self.parse_fcall(tokens),
-            Token::Equal => self.parse_overwrite(tokens),
+            Token::LBrac => Parser::parse_fcall(tokens),
+            Token::Equal => Parser::parse_overwrite(tokens),
             _ => panic!("Unkown line")
         }
     }
 
-    fn parse_into_params(&self,tokens : Vec<Vec<Token>> ) -> Result<Vec<(String, Primitive)>,ParseError> {
+    fn parse_into_params(tokens : Vec<Vec<Token>> ) -> Result<Vec<(String, Primitive)>,ParseError> {
         if tokens.len() == 1 && tokens.get(0).unwrap().len() == 0  {
             return Ok(Vec::new());
         }
@@ -153,7 +157,7 @@ impl Parser {
             if pair.len() != 2{
                 return Err(ParseError::NotValidParamter);
             }
-            vec.push((self.extrct_str(pair.get(1).unwrap().clone())?,self.extrct_prm(pair.get(0).unwrap().clone())?));
+            vec.push((Parser::extrct_str(pair.get(1).unwrap().clone())?,Parser::extrct_prm(pair.get(0).unwrap().clone())?));
         }
         Ok(vec)
     }
@@ -179,9 +183,8 @@ mod tests {
             }
         ";
         let mut tokenizer = Tokenizer::new(string);
-        let parser = Parser{};
         tokenizer.tokenize();
-        let (func , _) = parser.parse_fn(tokenizer.tokens)?;
+        let (func , _) = Parser::parse_fn(tokenizer.tokens)?;
         assert_eq!(func,
         Function{ 
             name: "main".into(), 

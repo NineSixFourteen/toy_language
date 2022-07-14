@@ -11,14 +11,15 @@ pub(crate) struct Compiler {
 
 impl Compiler {
 
-    pub(crate) fn compile(&self, prog : Program) -> Evaluator {
+    pub(crate) fn compile(prog : Program) -> Evaluator {
+        let compiler = Compiler{commands : vec![]};
         match prog {
             Program{ main, methods } => {
                 let z : HashMap<String, Function> = methods
                 .iter()
-                .map(|x| self.compile_fn(x.clone()))
+                .map(|x| compiler.compile_fn(x.clone()))
                 .collect();
-                let (_ , main) = self.compile_fn(main);
+                let (_ , main) = compiler.compile_fn(main);
                 Evaluator{
                     vars: HashMap::new(),
                     stack: Vec::new(),
@@ -30,7 +31,6 @@ impl Compiler {
         }
     }
     
-
     fn compile_fn(&self, func : OtherFunction ) -> (String,Function) {
         match func {
             OtherFunction{ name, ty: _,  body, params } => {

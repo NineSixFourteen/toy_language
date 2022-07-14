@@ -1,3 +1,8 @@
+use std::{env, fs};
+
+use compiler::Compiler;
+use parser::{tokenizer::{Tokenizer}, Parser};
+
 #[allow(dead_code)]
 pub mod stack_machine;
 #[allow(dead_code)]
@@ -6,34 +11,26 @@ pub mod tests;
 #[allow(dead_code)]
 pub mod compiler;
 fn main() {
-    let z = "900 500";
-    let a = &z[..1];
-    let b = &z[1..];
-    println!("{} {}",a , b);
-    /* 
-    let x = "Print 100 + 10 ";
-    let mut tk = parser::tokenizer::Tokenizer::new(x);
-    tk.tokenize();
-    let commands = vec![
-        Command::OCmd(OtherCmd::Push(Value::Int(26))),
-        Command::OCmd(OtherCmd::Push(Value::Int(25))),
-        Command::JCmd(JmpCmd::IFEQ(5)),
-        Command::OCmd(OtherCmd::Push(Value::Int(1))),
-        Command::OCmd(OtherCmd::Return),
-        Command::OCmd(OtherCmd::Push(Value::Int(5))),
-        Command::OCmd(OtherCmd::Return)
-        ];
-
-    let mut ev = Evaluator::Evaluator::new_e(commands);
-    let result = ev.eval();
-    match result {
-        Ok(Value::Int(x)) => {
-            println!("got int {}", x);
-        }
-        _ => {
-            println!("didn't get int")
-        }
+    let args: Vec<String> = env::args().collect();
+    let file_name;
+    println!("{} __ {}",args.len(),args.first().unwrap());
+    if args.len() == 1 && args.first().unwrap().ends_with("\\toy_language.exe") {
+        file_name = "exl.txt"
+    } else {
+        file_name = args.get(1).unwrap();
     }
-    */
-    
+    let contents = fs::read_to_string(file_name)
+        .expect("Something went wrong reading the file");
+    let mut tokens = Tokenizer::new(&contents);
+    tokens.tokenize();
+    match Parser::parse(tokens.tokens) {
+        Ok(x) => {
+            let mut c = Compiler::compile(x);
+            match c.eval() {
+                Ok(_res) => {},
+                Err(_) =>panic!(),
+            }
+        }
+        Err(p) => println!("ParseError : {:?}",p),
+    } 
 }

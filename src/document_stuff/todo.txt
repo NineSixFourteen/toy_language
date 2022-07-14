@@ -11,7 +11,6 @@ Parser
 Stack_Machine 
 1. Make it work 
 2. Make it so u can use variables after they are declared. 
-   //Make a new Value to diffeniate vars
 
 Tests
 1. Make the tests 
