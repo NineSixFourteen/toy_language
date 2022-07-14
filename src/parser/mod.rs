@@ -59,6 +59,9 @@ pub(crate) enum BoolNode {
 }
 #[derive(Debug)]
 pub(crate) enum ParseError {
+    ExpectButGot(String, Token),
+    NoClosingBracket,
+    NotValidParamter
 
 } 
 
@@ -147,7 +150,7 @@ impl Parser {
         let mut vec = Vec::new();
         for pair in tokens {
             if pair.len() != 2{
-                panic!();
+                return Err(ParseError::NotValidParamter);
             }
             vec.push((self.extrct_str(pair.get(1).unwrap().clone())?,self.extrct_prm(pair.get(0).unwrap().clone())?));
         }

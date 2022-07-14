@@ -22,7 +22,7 @@ impl Parser {
         let n : String;
         match name {
             Token::Value(x) => n = x,
-            _ => panic!()
+            _ => {return Err(ParseError::ExpectButGot("Value".into(), name));}
         }
         let (lines, _) = self.parse_lines(body)?;
         Ok((
@@ -64,13 +64,13 @@ impl Parser {
         let name: String;
         match n{
             Token::Value(x) => name = x,
-            _ => panic!()
+            _ => {return Err(ParseError::ExpectButGot("Value".into(), n));}
         }
         let mut ty  = Primitive::Int;
         match first {
             Token::Int => {}
             Token::String => ty = Primitive::String,
-            _ => panic!()
+            _ => {return Err(ParseError::ExpectButGot("Primitive/type".into(), first));}
         }
         Ok((Line::InitVar(ty, name , expr), rem))
     }
@@ -93,12 +93,14 @@ impl Parser {
         if tokens.len() == 0 {
             return Ok(lhs);
         }
-        match tokens.first().unwrap() {
+        let not = Token::Value("Nothing".into());
+        let t = tokens.first().unwrap_or(&not);
+        match t {
             Token::Plus  => Ok(Node::Add(Box::new(lhs), Box::new(self.parse_expr(tokens[1..].to_vec())?))),
             Token::Minus => Ok(Node::Sub(Box::new(lhs), Box::new(self.parse_expr(tokens[1..].to_vec())?))),
             Token::Mul   |
             Token::Div   => self.parse_prec2(lhs ,tokens),
-            _ => panic!()
+        _ => {return Err(ParseError::ExpectButGot("Operator".into(),t.clone()))}
         }
 
     }
@@ -108,7 +110,9 @@ impl Parser {
         let (prec2, rem) = grabber.grab_prec2(tokens[1..].to_vec());
         let lhs;
         let rhs = self.parse_prec2_helper(prec2)?;
-        match tokens.first().unwrap() {
+        let not = Token::Value("Nothing".into());
+        let t = tokens.first().unwrap_or(&not);
+        match t {
             Token::Mul => {
                 lhs = Node::Mul(Box::new(lh), Box::new(rhs));
             }
@@ -116,7 +120,7 @@ impl Parser {
                 lhs = Node::Div(Box::new(lh), Box::new(rhs));
 
             }
-            _ => panic!()
+            _ => {return Err(ParseError::ExpectButGot("Mul or Div".into(), t.clone()));}
         }
         if rem.len() == 0 {
             return Ok(lhs);
@@ -148,7 +152,7 @@ impl Parser {
         match tokens.first().unwrap() {
             Token::Mul => Ok(Node::Mul(Box::new(lhs), Box::new(self.parse_prec2_helper(tokens[1..].to_vec())?))),
             Token::Div => Ok(Node::Div(Box::new(lhs), Box::new(self.parse_prec2_helper(tokens[1..].to_vec())?))),
-            _ => panic!()
+            _ => unreachable!()
         }
     }
 
@@ -213,7 +217,7 @@ impl Parser {
             Token::LTEQ =>  Ok(BoolNode::LThanEq(lhs,rhs)),
             Token::EQ   =>  Ok(BoolNode::Eq(lhs,rhs)),
             Token::NEQ  =>  Ok(BoolNode::NEq(lhs,rhs)),
-            _ => panic!()
+            _ => {return Err(ParseError::ExpectButGot("Boolean operator".into(), op.clone()));}
         }
     }
 
