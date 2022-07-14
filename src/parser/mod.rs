@@ -61,7 +61,8 @@ pub(crate) enum BoolNode {
 pub(crate) enum ParseError {
     ExpectButGot(String, Token),
     NoClosingBracket,
-    NotValidParamter
+    NotValidParamter,
+    CantFindToken(Token)
 
 } 
 
@@ -95,10 +96,10 @@ impl Parser {
 
     fn parse_fn(&self, tokens: Vec<Token> ) -> Result<(Function , Vec<Token>),ParseError> {
         let y = Grabber{};
-        let ((start,body), rem ) = y.grab_fn(tokens);
+        let ((start,body), rem ) = y.grab_fn(tokens)?;
         let ty = self.extrct_prm(start.get(1).unwrap().clone())?;
         let name = self.extrct_str(start.get(2).unwrap().clone())?;
-        let parms = y.sep_on_comma(start[4..start.len() - 1].into());
+        let parms = y.sep_on_comma(start[4..start.len() - 1].into())?;
         let params = self.parse_into_params(parms)?; 
         let (body, _ ) = self.parse_lines(body)?;
         let func = Function{

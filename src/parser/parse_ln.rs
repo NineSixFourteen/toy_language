@@ -4,7 +4,7 @@ impl Parser {
     
     pub(crate) fn parse_print(&self, tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
         let y = Grabber{};
-        let (line, rem) = y.grab_line(tokens);
+        let (line, rem) = y.grab_line(tokens)?;
         let expr = self.parse_expr(line[1..].to_vec())?;
         Ok((Line::Print(expr), rem))
     }
@@ -12,9 +12,9 @@ impl Parser {
      pub(crate)fn parse_for(&self, tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
         let grabber = Grabber{};
         let name = tokens.get(1).unwrap().clone();
-        let (line,rem) = grabber.grab_tokens_before(tokens, Token::LCur);
-        let (body, rem) = grabber.grab_brac(rem);
-        let parts = grabber.sep_on_comma(line[3..].to_vec());
+        let (line,rem) = grabber.grab_tokens_before(tokens, Token::LCur)?;
+        let (body, rem) = grabber.grab_brac(rem)?;
+        let parts = grabber.sep_on_comma(line[3..].to_vec())?;
         let mut nodes = Vec::new();
         for part in parts {
             nodes.push(self.parse_expr(part)?);
@@ -37,9 +37,9 @@ impl Parser {
 
      pub(crate)fn parse_if(&self, tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError>{
         let grabber = Grabber{};
-        let (line, rem ) = grabber.grab_tokens_before(tokens, Token::LCur);
+        let (line, rem ) = grabber.grab_tokens_before(tokens, Token::LCur)?;
         let bool = self.parse_bool_expr(line[1..].to_vec())?;
-        let (body, rem ) = grabber.grab_brac(rem);
+        let (body, rem ) = grabber.grab_brac(rem)?;
         let (lines , _ ) = self.parse_lines(body)?;
         Ok((Line::If(bool, lines),rem))
     }
@@ -50,7 +50,7 @@ impl Parser {
 
     pub(crate)fn parse_return(&self, tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
         let y = Grabber{};
-        let (line, rem) = y.grab_line(tokens);
+        let (line, rem) = y.grab_line(tokens)?;
         let expr = self.parse_expr(line[1..].to_vec())?;
         Ok((Line::Return(expr), rem))
     }
@@ -59,7 +59,7 @@ impl Parser {
         let y = Grabber{};
         let first = tokens.first().unwrap().clone();
         let n = tokens.get(1).unwrap().clone();
-        let (line, rem) = y.grab_line(tokens);
+        let (line, rem) = y.grab_line(tokens)?;
         let expr = self.parse_expr(line[3..].to_vec())?;
         let name: String;
         match n{
@@ -107,7 +107,7 @@ impl Parser {
 
     fn parse_prec2(&self, lh : Node, tokens: Vec<Token>) -> Result<Node,ParseError> {
         let grabber = Grabber{};
-        let (prec2, rem) = grabber.grab_prec2(tokens[1..].to_vec());
+        let (prec2, rem) = grabber.grab_prec2(tokens[1..].to_vec())?;
         let lhs;
         let rhs = self.parse_prec2_helper(prec2)?;
         let not = Token::Value("Nothing".into());
@@ -160,7 +160,7 @@ impl Parser {
     pub(crate) fn parse_func(&self, tokens : Vec<Token> ) -> Result<(Node, Vec<Token>),ParseError> {
         let name = self.extrct_str(tokens.first().unwrap().clone())?;
         let grabber = Grabber{};
-        let (line, rem ) = grabber.grab_brac(tokens[1..].to_vec());
+        let (line, rem ) = grabber.grab_brac(tokens[1..].to_vec())?;
         let nodes;
         if line.len() != 0 {
             nodes = self.parse_param(line)?;
@@ -172,7 +172,7 @@ impl Parser {
 
     fn parse_param(&self, tokens : Vec<Token> ) -> Result<Vec<Node>,ParseError> {
         let grabber = Grabber{};
-        let ndes = grabber.sep_on_comma(tokens);
+        let ndes = grabber.sep_on_comma(tokens)?;
         let mut nodes = Vec::new();
         for nde in ndes {
             nodes.push(self.parse_expr(nde)?);
@@ -206,7 +206,7 @@ impl Parser {
    
     fn parse_bool_expr(&self, tokens:Vec<Token>) -> Result<BoolNode,ParseError> {
         let grabber = Grabber{};
-        let (bef, after) = grabber.sep_on_bool_op1(tokens);
+        let (bef, after) = grabber.sep_on_bool_op1(tokens)?;
         let op = after.first().unwrap();
         let lhs = self.parse_expr(bef)?;
         let rhs = self.parse_expr(after[1..].to_vec())?;
@@ -223,10 +223,10 @@ impl Parser {
 
     pub(crate) fn parse_fcall(&self, tokens : Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
         let grabber = Grabber{};
-        let (mut line, rem ) = grabber.grab_line(tokens);
+        let (mut line, rem ) = grabber.grab_line(tokens)?;
         let name = self.extrct_str(line.pop().unwrap())?;
-        let (par, _ ) = grabber.grab_brac(line);
-        let params = grabber.sep_on_comma(par);
+        let (par, _ ) = grabber.grab_brac(line)?;
+        let params = grabber.sep_on_comma(par)?;
         let mut nodes = Vec::new();
         for param in params {
             nodes.push(self.parse_expr(param)?);
@@ -241,7 +241,7 @@ impl Parser {
 
     pub(crate) fn parse_overwrite(&self, tokens : Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
         let grabber = Grabber{};
-        let (node, rem ) = grabber.grab_line(tokens);
+        let (node, rem ) = grabber.grab_line(tokens)?;
         let name = self.extrct_str(node.first().unwrap().clone())?;
         let expr = self.parse_expr(node[2..].to_vec())?;
         Ok((Line::OverVar(name, expr),rem))
