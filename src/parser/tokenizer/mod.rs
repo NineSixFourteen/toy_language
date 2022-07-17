@@ -1,9 +1,9 @@
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum Token {
+pub(crate) enum TokenTy {
     // Line Types
     Print, For, If, Else, Return, 
     // Primitives
-    Int, String, 
+    Int, String, Boolean, Char, Float,  
     // Seperators
     SemiColan, Comma, Equal, 
     // Seperators - Brackets 
@@ -20,9 +20,25 @@ pub(crate) enum Token {
     Value(String) , Def
 }
 
+#[derive(Debug,PartialEq,Clone)]
+pub(crate) struct Token {
+    pub ty : TokenTy,
+    pub line_num : usize,
+}
+
+impl Token {
+    pub(crate) fn new(ty : TokenTy, line_num : usize) -> Token {
+        Token {
+            ty,
+            line_num 
+        }
+    }
+}
+
 pub(crate) struct Tokenizer<'a> {
     code: &'a str, 
     pos: usize,
+    line_num : usize,
     pub(crate) tokens : Vec<Token>
 }
 
@@ -32,6 +48,7 @@ impl<'a> Tokenizer<'a> {
         Tokenizer { 
             code : message,
             pos: 0, 
+            line_num : 0,
             tokens: Vec::new()
          }
     }
@@ -52,13 +69,13 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn match_keyword_and_check(&mut self, c : char , t : Token, t2 : Token ) {
+    fn match_keyword_and_check(&mut self, c : char , t : TokenTy, t2 : TokenTy ) {
         self.match_keyword();
         if self.cur() == c {
-            self.tokens.push(t);
+            self.tokens.push(Token::new(t,self.pos));
             self.code = &self.code[1..];
         } else {
-            self.tokens.push(t2);
+            self.tokens.push(Token::new(t2,self.pos));
         }
     }
 
@@ -66,25 +83,26 @@ impl<'a> Tokenizer<'a> {
         match self.code.chars().nth(self.pos) {
             Some(x) => {
                 match x {
-                    ';' => self.match_keyword_and(Token::SemiColan),
-                    ',' => self.match_keyword_and(Token::Comma),
-                    '[' => self.match_keyword_and(Token::LSquare),
-                    ']' => self.match_keyword_and(Token::RSquare),
-                    '+' => self.match_keyword_and_check('+', Token::Inc, Token::Plus),
-                    '-' => self.match_keyword_and_check('-', Token::Dec, Token::Minus),
-                    '*' => self.match_keyword_and(Token::Mul),
-                    '/' => self.match_keyword_and(Token::Div),
-                    '&' => self.match_keyword_and_check('&', Token::BAnd, Token::And),
-                    '|' => self.match_keyword_and_check('|', Token::BOr, Token::Or),
-                    '<' => self.match_keyword_and_check('=', Token::LTEQ, Token::LT),
-                    '>' => self.match_keyword_and_check('=', Token::GTEQ, Token::GT),
-                    '=' => self.match_keyword_and_check('=', Token::EQ, Token::Equal),
-                    '!' => self.match_keyword_and_check('=', Token::NEQ, Token::Not),
-                    '(' => self.match_keyword_and(Token::LBrac),
-                    ')' => self.match_keyword_and(Token::RBrac),
-                    '{' => self.match_keyword_and(Token::LCur),
-                    '}' => self.match_keyword_and(Token::RCur),
+                    ';' => self.match_keyword_and(TokenTy::SemiColan),
+                    ',' => self.match_keyword_and(TokenTy::Comma),
+                    '[' => self.match_keyword_and(TokenTy::LSquare),
+                    ']' => self.match_keyword_and(TokenTy::RSquare),
+                    '+' => self.match_keyword_and_check('+', TokenTy::Inc, TokenTy::Plus),
+                    '-' => self.match_keyword_and_check('-', TokenTy::Dec, TokenTy::Minus),
+                    '*' => self.match_keyword_and(TokenTy::Mul),
+                    '/' => self.match_keyword_and(TokenTy::Div),
+                    '&' => self.match_keyword_and_check('&', TokenTy::BAnd, TokenTy::And),
+                    '|' => self.match_keyword_and_check('|', TokenTy::BOr, TokenTy::Or),
+                    '<' => self.match_keyword_and_check('=', TokenTy::LTEQ, TokenTy::LT),
+                    '>' => self.match_keyword_and_check('=', TokenTy::GTEQ, TokenTy::GT),
+                    '=' => self.match_keyword_and_check('=', TokenTy::EQ, TokenTy::Equal),
+                    '!' => self.match_keyword_and_check('=', TokenTy::NEQ, TokenTy::Not),
+                    '(' => self.match_keyword_and(TokenTy::LBrac),
+                    ')' => self.match_keyword_and(TokenTy::RBrac),
+                    '{' => self.match_keyword_and(TokenTy::LCur),
+                    '}' => self.match_keyword_and(TokenTy::RCur),
                     ' ' => self.match_keyword(),
+                    '\n' => {self.line_num += 1;self.pos += 1},
                     _   => self.pos += 1
                 }
             }
@@ -95,16 +113,19 @@ impl<'a> Tokenizer<'a> {
     fn match_word(&mut self, word :&str ){
         let wo = word.trim();
         match wo {
-            "Print"  => self.tokens.push(Token::Print),
-            "int"    => self.tokens.push(Token::Int),
-            "String" => self.tokens.push(Token::String),
-            "if"     => self.tokens.push(Token::If),
-            "for"    => self.tokens.push(Token::For),
-            "else"   => self.tokens.push(Token::Else),
-            "return" => self.tokens.push(Token::Return),
-            "def"    => self.tokens.push(Token::Def),
-            ""       => {}
-            _        => self.tokens.push(Token::Value(word.trim().into()))
+            "Print"   => self.push_token(TokenTy::Print),
+            "int"     => self.push_token(TokenTy::Int),
+            "float"   => self.push_token(TokenTy::Float),
+            "boolean" => self.push_token(TokenTy::Boolean),
+            "char"    => self.push_token(TokenTy::Char), 
+            "String"  => self.push_token(TokenTy::String),
+            "if"      => self.push_token(TokenTy::If),
+            "for"     => self.push_token(TokenTy::For),
+            "else"    => self.push_token(TokenTy::Else),
+            "return"  => self.push_token(TokenTy::Return),
+            "def"     => self.push_token(TokenTy::Def),
+            ""        => {}
+            _         => self.tokens.push(Token::new(TokenTy::Value(word.trim().into()),self.line_num))
         }
     }
 
@@ -115,33 +136,38 @@ impl<'a> Tokenizer<'a> {
         self.pos = 0;
     }
 
-    fn match_keyword_and(&mut self, t : Token ) {
+    fn match_keyword_and(&mut self, t : TokenTy ) {
         self.match_keyword();
-        self.tokens.push(t);
+        self.push_token(t);
     }
 
+    fn push_token(&mut self, ty : TokenTy) {
+        self.tokens.push(Token::new(ty,self.line_num))
     }
+
+}
+
 
 #[cfg(test)] 
 mod tests {
-    use crate::parser::tokenizer::Token;
+    use crate::parser::TokenTy;
 
-    use super::Tokenizer;
+    use super::{Tokenizer, Token};
 
     #[test]
     fn token_test_1() {
         let str = "Print x + 10 - 3;";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
-        assert_eq!(tk.tokens, 
+        test_helper(tk.tokens, 
         vec![
-            Token::Print,
-            Token::Value("x".into()),
-            Token::Plus,
-            Token::Value("10".into()),
-            Token::Minus,
-            Token::Value("3".into()),
-            Token::SemiColan
+            TokenTy::Print,
+            TokenTy::Value("x".into()),
+            TokenTy::Plus,
+            TokenTy::Value("10".into()),
+            TokenTy::Minus,
+            TokenTy::Value("3".into()),
+            TokenTy::SemiColan
         ]
     );
     }
@@ -150,14 +176,14 @@ mod tests {
         let str = "Print x + 10 - 3";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
-        assert_eq!(tk.tokens, 
+        test_helper(tk.tokens, 
         vec![
-            Token::Print,
-            Token::Value("x".into()),
-            Token::Plus,
-            Token::Value("10".into()),
-            Token::Minus,
-            Token::Value("3".into())
+            TokenTy::Print,
+            TokenTy::Value("x".into()),
+            TokenTy::Plus,
+            TokenTy::Value("10".into()),
+            TokenTy::Minus,
+            TokenTy::Value("3".into())
         ]
     );
     }
@@ -166,15 +192,15 @@ mod tests {
         let str = "Print for int String if else return ";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
-        assert_eq!(tk.tokens , 
+        test_helper(tk.tokens , 
         vec![
-            Token::Print,
-            Token::For,
-            Token::Int,
-            Token::String,
-            Token::If,
-            Token::Else,
-            Token::Return
+            TokenTy::Print,
+            TokenTy::For,
+            TokenTy::Int,
+            TokenTy::String,
+            TokenTy::If,
+            TokenTy::Else,
+            TokenTy::Return
         ])
     }
 
@@ -183,21 +209,21 @@ mod tests {
         let str = "+ - * / < > = ++ -- != == >= <= ";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
-        assert_eq!(tk.tokens , 
+        test_helper(tk.tokens , 
         vec![
-            Token::Plus,
-            Token::Minus,
-            Token::Mul,
-            Token::Div,
-            Token::LT,
-            Token::GT,
-            Token::Equal,
-            Token::Inc,
-            Token::Dec,
-            Token::NEQ,
-            Token::EQ,
-            Token::GTEQ,
-            Token::LTEQ
+            TokenTy::Plus,
+            TokenTy::Minus,
+            TokenTy::Mul,
+            TokenTy::Div,
+            TokenTy::LT,
+            TokenTy::GT,
+            TokenTy::Equal,
+            TokenTy::Inc,
+            TokenTy::Dec,
+            TokenTy::NEQ,
+            TokenTy::EQ,
+            TokenTy::GTEQ,
+            TokenTy::LTEQ
         ])
     }
 
@@ -206,15 +232,22 @@ mod tests {
         let str = "( ) { } [ ]";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
-        assert_eq!(tk.tokens , 
+        test_helper(tk.tokens , 
         vec![
-            Token::LBrac,
-            Token::RBrac,
-            Token::LCur,
-            Token::RCur,
-            Token::LSquare,
-            Token::RSquare
+            TokenTy::LBrac,
+            TokenTy::RBrac,
+            TokenTy::LCur,
+            TokenTy::RCur,
+            TokenTy::LSquare,
+            TokenTy::RSquare
         ])
     }
-
+    fn test_helper( tokens : Vec<Token>, expected : Vec<TokenTy>) {
+        let mut toks = Vec::new();
+        for token in &tokens {
+            toks.push(token.ty.clone());
+        }
+        assert_eq!(expected, toks)
+    }
 }
+

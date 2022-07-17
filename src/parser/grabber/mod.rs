@@ -1,27 +1,27 @@
 pub(crate) struct Grabber{}
 use super::*;
 impl Grabber{
-    pub(crate) fn grab_tokens_before(&self, tokens : Vec<Token> , t:Token) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
+    pub(crate) fn grab_tokens_before( tokens : Vec<Token> , t:TokenTy) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
         let num = tokens
         .iter()
-        .position(|x| x == &t)
-        .ok_or(ParseError::CantFindToken(t))?;
+        .position(|x| x.ty == t)
+        .ok_or(ParseError::CantFindToken(Token::new(t,tokens.first().unwrap().line_num)))?;
         Ok((tokens[..num].to_vec(),tokens[num..].to_vec()))
         
     }
 
-    pub(crate) fn grab_line(&self, tokens : Vec<Token>) -> Result<(Vec<Token>,Vec<Token> ), ParseError>{
-        let (line, rem ) = self.grab_tokens_before(tokens, Token::SemiColan)?;
+    pub(crate) fn grab_line( tokens : Vec<Token>) -> Result<(Vec<Token>,Vec<Token> ), ParseError>{
+        let (line, rem ) = Grabber::grab_tokens_before(tokens, TokenTy::SemiColan)?;
         Ok((line , rem[1..].to_vec()))
     }
 
-    pub(crate) fn grab_brac(&self, tokens : Vec<Token>) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
+    pub(crate) fn grab_brac( tokens : Vec<Token>) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
         let t = tokens.first().unwrap();
         let other_brac;
-        match t {
-            Token::LBrac => other_brac = Token::RBrac,
-            Token::LSquare => other_brac = Token::RSquare,
-            Token::LCur => other_brac = Token::RCur,
+        match t.ty {
+            TokenTy::LBrac => other_brac = TokenTy::RBrac,
+            TokenTy::LSquare => other_brac = TokenTy::RSquare,
+            TokenTy::LCur => other_brac = TokenTy::RCur,
             _ => return Err(ParseError::ExpectButGot("Bracket".into(), t.clone()))
         }
         let mut open = 0 ; 
@@ -29,38 +29,38 @@ impl Grabber{
         .iter()
         .position(
             |x| 
-            if x == &other_brac && open == 1 {true}
-            else if x == t {open += 1;false} 
-            else if x == &other_brac {open -= 1;false}
+            if x.ty == other_brac && open == 1 {true}
+            else if x.ty == t.ty {open += 1;false} 
+            else if x.ty == other_brac {open -= 1;false}
             else {false}
         ).ok_or(ParseError::NoClosingBracket)?;
         Ok((tokens[1..num].to_vec(), tokens[num+ 1 ..].to_vec()))
     }
 
-    pub(crate) fn grab_fn(&self, tokens : Vec<Token>) -> Result<((Vec<Token> , Vec<Token>) , Vec<Token>),ParseError>{
-        let (x, rem) = self.grab_tokens_before(tokens, Token::LCur)?;
-        let (y, rem) = self.grab_brac(rem)?;
+    pub(crate) fn grab_fn( tokens : Vec<Token>) -> Result<((Vec<Token> , Vec<Token>) , Vec<Token>),ParseError>{
+        let (x, rem) = Grabber::grab_tokens_before(tokens, TokenTy::LCur)?;
+        let (y, rem) = Grabber::grab_brac(rem)?;
         Ok(((x,y),rem))
     }
 
-    pub(crate) fn grab_prec2(&self, tokens : Vec<Token>) -> Result<(Vec<Token>,Vec<Token>),ParseError> {
+    pub(crate) fn grab_prec2( tokens : Vec<Token>) -> Result<(Vec<Token>,Vec<Token>),ParseError> {
         let pos = tokens
         .iter()
         .position(
             |x| 
-            match x {
-                Token::Plus | Token::Minus => true,
+            match x.ty {
+                TokenTy::Plus | TokenTy::Minus => true,
                 _ => false,
             } 
         ).unwrap_or(tokens.len());
         Ok((tokens[..pos].to_vec() , tokens[pos..].to_vec()))
     }
 
-    pub(crate) fn sep_on_comma(&self, tokens : Vec<Token> ) -> Result<Vec<Vec<Token>>,ParseError> {
+    pub(crate) fn sep_on_comma( tokens : Vec<Token> ) -> Result<Vec<Vec<Token>>,ParseError> {
         let mut vecs : Vec<Vec<Token>> = Vec::new() ;
         let mut vec  : Vec<Token> = Vec::new();
         for token in tokens {
-            if token == Token::Comma {
+            if token.ty == TokenTy::Comma {
                 vecs.push(vec.clone());
                 vec.clear();
             } else {
@@ -71,16 +71,16 @@ impl Grabber{
         Ok(vecs)
     }
 
-    pub(crate) fn sep_on_bool_op1(&self, tokens : Vec<Token>) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
+    pub(crate) fn sep_on_bool_op1( tokens : Vec<Token>) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
         let pos = tokens
         .iter()
         .position(|x| 
-            match x {
-                Token::LT | Token::GT | Token::LTEQ | Token::GTEQ | Token::EQ | Token::NEQ
+            match x.ty {
+                TokenTy::LT | TokenTy::GT | TokenTy::LTEQ | TokenTy::GTEQ | TokenTy::EQ | TokenTy::NEQ
                 => true,
                 _ => false 
             }
-        ).ok_or(ParseError::ExpectButGot("Bool operator".into(), Token::Value("()".into())))?;
+        ).ok_or(ParseError::ExpectButGot("Bool operator".into(), Token::new(TokenTy::Value("()".into()),0)))?;
         Ok((tokens[..pos].to_vec(), tokens[pos..].to_vec()))
     }
         
@@ -90,85 +90,90 @@ impl Grabber{
 mod tests {
     use super::*;
     #[test]
-    fn test_grab() -> Result<(),ParseError> {
-        let y = Grabber {};
-        let z = y.grab_tokens_before(vec![
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::LCur,
-            Token::Or,
-            Token::Or,
-            Token::Or,
-            Token::Or,
-            Token::Or
-        ], Token::LCur)?;
-        assert_eq!(z, (vec![
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::And,
-        ],vec![
-            Token::LCur,
-            Token::Or,
-            Token::Or,
-            Token::Or,
-            Token::Or,
-            Token::Or
-        ]));
+fn test_grab() -> Result<(),ParseError> {
+        let z = Grabber::grab_tokens_before(make_tokens(vec![
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::LCur,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or
+        ]), TokenTy::LCur)?;
+        assert_eq!(z , ((make_tokens(vec![
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+        ]),make_tokens(vec![
+            TokenTy::LCur,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or,
+            TokenTy::Or
+        ]))));
         Ok(())
     }
     #[test]
     fn test_grab_prec2() -> Result<(),ParseError>{
-        let grabber = Grabber{};
-        let tokens = vec![
-            Token::Value("9".into()),
-            Token::Mul,
-            Token::Value("2".into()),
-            Token::Div,
-            Token::Value("3".into()),
-            Token::Plus,
-            Token::Value("9".into())
-        ];
-        let (one,two) = grabber.grab_prec2(tokens)?;
+        let tokens = make_tokens(vec![
+            TokenTy::Value("9".into()),
+            TokenTy::Mul,
+            TokenTy::Value("2".into()),
+            TokenTy::Div,
+            TokenTy::Value("3".into()),
+            TokenTy::Plus,
+            TokenTy::Value("9".into())
+        ]);
+        let (one,two) = Grabber::grab_prec2(tokens)?;
         assert_eq!(one,
-            vec![
-                Token::Value("9".into()),
-                Token::Mul,
-                Token::Value("2".into()),
-                Token::Div,
-                Token::Value("3".into())
+            make_tokens(vec![
+                TokenTy::Value("9".into()),
+                TokenTy::Mul,
+                TokenTy::Value("2".into()),
+                TokenTy::Div,
+                TokenTy::Value("3".into())
             ]
-        );
+        ));
         assert_eq!(two,
-            vec![
-                Token::Plus,
-                Token::Value("9".into())
+            make_tokens(vec![
+                TokenTy::Plus,
+                TokenTy::Value("9".into())
             ]
-        );
+        ));
         Ok(())
     }
     #[test]
     fn test_grab_brac() -> Result<(),ParseError>{
-        let tokens = vec![
-            Token::LBrac,
-            Token::And,
-            Token::And,
-            Token::And,
-            Token::RBrac,
-            Token::Or
-        ];
-        let grabber = Grabber{};
-        let (bef,after) = grabber.grab_brac(tokens)?;
-        assert_eq!(bef,vec![
-            Token::And,Token::And,Token::And
+        let tokens = make_tokens(vec![
+            TokenTy::LBrac,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::And,
+            TokenTy::RBrac,
+            TokenTy::Or
         ]);
-        assert_eq!(after,vec![
-            Token::Or
-        ]);
+        let (bef,after) = Grabber::grab_brac(tokens)?;
+        assert_eq!(bef,make_tokens(vec![
+            TokenTy::And,TokenTy::And,TokenTy::And
+        ]));
+        assert_eq!(after, make_tokens(vec![
+            TokenTy::Or
+        ]));
         Ok(())
+    }
+
+    fn make_tokens(tokens : Vec<TokenTy> ) -> Vec<Token> {
+        let mut toks = Vec::new();
+        for token in tokens {
+            toks.push(Token::new(token, 0));
+        }
+        toks
     }
 }

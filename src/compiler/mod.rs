@@ -52,15 +52,17 @@ impl Compiler {
         }
     }
 
-    fn compile_ln(&mut self, line : Line) {
+    pub(crate) fn compile_ln(&mut self, line : Line) {
         match line {
             Line::Print(_) => self.compile_print(line),
             Line::InitVar(_, _, _) => self.complile_init_var(line),
             Line::OverVar(_, _) => self.compile_overwrite(line),
-            Line::For(_, _, _, _) => self.compile_for(line),
+            Line::For (_,_,_,_) => self.compile_for(line),
             Line::If(_, _) => self.compile_if(line),
             Line::Return(_) => self.compile_return(line),
             Line::FCall(_) => todo!(),
         }
     }
+
+    
 }

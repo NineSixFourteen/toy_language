@@ -1,45 +1,32 @@
+use super::{Parser, tokenizer::{Token, TokenTy}, Line, ParseError, grabber::Grabber, Primitive, BoolNode, Node, NodeTy};
 
-use super::*;
+
 impl Parser {
+
+    pub(crate) fn parse_print(tokens: Vec<Token> ) -> Result<(Line,Vec<Token>), ParseError> {
+        let (line, rem) = Grabber::grab_line(tokens)?;
+        let x = Parser::parse_expr(line[1..].to_vec())?;
+        Ok((Line::Print(x),rem))        
+     }
     
-    pub(crate) fn parse_print(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let y = Grabber{};
-        let (line, rem) = y.grab_line(tokens)?;
-        let expr = Parser::parse_expr(line[1..].to_vec())?;
-        Ok((Line::Print(expr), rem))
+    pub(crate)fn parse_for(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
+
+        let (line, rem)     = Grabber::grab_brac(tokens[1..].to_vec())?;
+        let (body, rem)     = Grabber::grab_brac(rem)?;
+        let (init      , rem2)   = Parser::parse_line(line)?;
+        let (bool, mut line2 )  = Grabber::grab_line(rem2)?; 
+        let bool_exp     = Parser::parse_bool_expr(bool)?;
+        line2.push(Token::new(TokenTy::SemiColan, 0));
+        let (other_line, _ ) = Parser::parse_line(line2)?;
+        let (lines, _ ) = Parser::parse_lines(body)?;
+
+        Ok((Line::For(Box::new(init), bool_exp, Box::new(other_line), lines), rem))
     }
 
-     pub(crate)fn parse_for(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let grabber = Grabber{};
-        let name = tokens.get(1).unwrap().clone();
-        let (line,rem) = grabber.grab_tokens_before(tokens, Token::LCur)?;
-        let (body, rem) = grabber.grab_brac(rem)?;
-        let parts = grabber.sep_on_comma(line[3..].to_vec())?;
-        let mut nodes = Vec::new();
-        for part in parts {
-            nodes.push(Parser::parse_expr(part)?);
-        }
-        let n : String;
-        match name {
-            Token::Value(x) => n = x,
-            _ => {return Err(ParseError::ExpectButGot("Value".into(), name));}
-        }
-        let (lines, _) = Parser::parse_lines(body)?;
-        Ok((
-            Line::For(
-                n, 
-                nodes.get(0).unwrap().clone(),
-                nodes.get(1).unwrap().clone(),
-                lines),
-            rem
-        ))
-    }
-
-     pub(crate)fn parse_if(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError>{
-        let grabber = Grabber{};
-        let (line, rem ) = grabber.grab_tokens_before(tokens, Token::LCur)?;
+    pub(crate)fn parse_if(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError>{
+        let (line, rem ) = Grabber::grab_tokens_before(tokens, TokenTy::LCur)?;
         let bool = Parser::parse_bool_expr(line[1..].to_vec())?;
-        let (body, rem ) = grabber.grab_brac(rem)?;
+        let (body, rem ) = Grabber::grab_brac(rem)?;
         let (lines , _ ) = Parser::parse_lines(body)?;
         Ok((Line::If(bool, lines),rem))
     }
@@ -49,40 +36,67 @@ impl Parser {
     }
 
     pub(crate)fn parse_return(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let y = Grabber{};
-        let (line, rem) = y.grab_line(tokens)?;
+        let (line, rem) = Grabber::grab_line(tokens)?;
         let expr = Parser::parse_expr(line[1..].to_vec())?;
         Ok((Line::Return(expr), rem))
     }
 
     pub(crate) fn parse_init_var( tokens:Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let y = Grabber{};
         let first = tokens.first().unwrap().clone();
         let n = tokens.get(1).unwrap().clone();
-        let (line, rem) = y.grab_line(tokens)?;
+        let (line, rem) = Grabber::grab_line(tokens)?;
         let expr = Parser::parse_expr(line[3..].to_vec())?;
         let name: String;
-        match n{
-            Token::Value(x) => name = x,
+        match n.ty{
+            TokenTy::Value(x) => name = x,
             _ => {return Err(ParseError::ExpectButGot("Value".into(), n));}
         }
-        let mut ty  = Primitive::Int;
-        match first {
-            Token::Int => {}
-            Token::String => ty = Primitive::String,
+    
+        let ty = match first.ty {
+            TokenTy::Int => Primitive::Int,
+            TokenTy::String => Primitive::String,
+            TokenTy::Float =>  Primitive::Float,
+            TokenTy::Char => Primitive::Char,
+            TokenTy::Boolean => Primitive::Boolean,
             _ => {return Err(ParseError::ExpectButGot("Primitive/type".into(), first));}
-        }
+        };
         Ok((Line::InitVar(ty, name , expr), rem))
     }
 
+    pub(crate)
 
-    fn parse_expr( mut tokens: Vec<Token>) -> Result<Node,ParseError> {
+
+    fn contains_bool(tokens : Vec<Token>) -> bool {
+        for t in &tokens {
+            let x = match t.ty {
+                TokenTy::LT   | TokenTy::GT   |
+                TokenTy::LTEQ | TokenTy::GTEQ |
+                TokenTy::EQ   | TokenTy::NEQ => true,
+                _ => false
+            };
+            if x {return x}
+        }
+        false
+    }
+
+    fn parse_expr(tokens : Vec<Token>) -> Result<NodeTy,ParseError> {
+        if Parser::contains_bool(tokens.clone()) {
+            let node = Parser::parse_bool_expr(tokens)?;
+            Ok(NodeTy::BoolNode(node))
+        } else {
+            let node = Parser::parse_expr_nb(tokens)?;
+            Ok(NodeTy::Node(node))
+        }
+    }
+
+    //nb = no boolean 
+    fn parse_expr_nb( mut tokens: Vec<Token>) -> Result<Node,ParseError> {
         if tokens.len() == 1 {
             return Parser::parse_val(tokens.first().unwrap().clone());
         }
         let lhs : Node ; 
-        match tokens.get(1).unwrap() {
-            Token::LBrac => {
+        match tokens.get(1).unwrap().ty {
+            TokenTy::LBrac => {
                 (lhs, tokens) = Parser::parse_func(tokens)?;
             }
             _ => {
@@ -93,30 +107,29 @@ impl Parser {
         if tokens.len() == 0 {
             return Ok(lhs);
         }
-        let not = Token::Value("Nothing".into());
+        let not = Token::new(TokenTy::Value("Nothing".into()),0);
         let t = tokens.first().unwrap_or(&not);
-        match t {
-            Token::Plus  => Ok(Node::Add(Box::new(lhs), Box::new(Parser::parse_expr(tokens[1..].to_vec())?))),
-            Token::Minus => Ok(Node::Sub(Box::new(lhs), Box::new(Parser::parse_expr(tokens[1..].to_vec())?))),
-            Token::Mul   |
-            Token::Div   => Parser::parse_prec2(lhs ,tokens),
+        match t.ty {
+            TokenTy::Plus  => Ok(Node::Add(Box::new(lhs), Box::new(Parser::parse_expr_nb(tokens[1..].to_vec())?))),
+            TokenTy::Minus => Ok(Node::Sub(Box::new(lhs), Box::new(Parser::parse_expr_nb(tokens[1..].to_vec())?))),
+            TokenTy::Mul   |
+            TokenTy::Div   => Parser::parse_prec2(lhs ,tokens),
         _ => {return Err(ParseError::ExpectButGot("Operator".into(),t.clone()))}
         }
 
     }
 
     fn parse_prec2(lh : Node, tokens: Vec<Token>) -> Result<Node,ParseError> {
-        let grabber = Grabber{};
-        let (prec2, rem) = grabber.grab_prec2(tokens[1..].to_vec())?;
+        let (prec2, rem) = Grabber::grab_prec2(tokens[1..].to_vec())?;
         let lhs;
         let rhs = Parser::parse_prec2_helper(prec2)?;
-        let not = Token::Value("Nothing".into());
+        let not = Token::new(TokenTy::Value("Nothing".into()),0);
         let t = tokens.first().unwrap_or(&not);
-        match t {
-            Token::Mul => {
+        match t.ty {
+            TokenTy::Mul => {
                 lhs = Node::Mul(Box::new(lh), Box::new(rhs));
             }
-            Token::Div => {
+            TokenTy::Div => {
                 lhs = Node::Div(Box::new(lh), Box::new(rhs));
 
             }
@@ -125,9 +138,9 @@ impl Parser {
         if rem.len() == 0 {
             return Ok(lhs);
         }
-        match rem.first().unwrap(){
-            Token::Plus  => Ok(Node::Add(Box::new(lhs), Box::new(Parser::parse_expr(rem[1..].to_vec())?))),
-            Token::Minus => Ok(Node::Sub(Box::new(lhs), Box::new(Parser::parse_expr(rem[1..].to_vec())?))),
+        match rem.first().unwrap().ty {
+            TokenTy::Plus  => Ok(Node::Add(Box::new(lhs), Box::new(Parser::parse_expr_nb(rem[1..].to_vec())?))),
+            TokenTy::Minus => Ok(Node::Sub(Box::new(lhs), Box::new(Parser::parse_expr_nb(rem[1..].to_vec())?))),
             _ => unreachable!()
         }
     }
@@ -137,8 +150,8 @@ impl Parser {
             return Parser::parse_val(tokens.first().unwrap().clone());
         }
         let lhs : Node ; 
-        match tokens.get(1).unwrap() {
-            Token::LBrac => {
+        match tokens.get(1).unwrap().ty {
+            TokenTy::LBrac => {
                 (lhs, tokens) = Parser::parse_func(tokens)?;
             }
             _ => {
@@ -149,9 +162,9 @@ impl Parser {
         if tokens.len() == 0 {
             return Ok(lhs);
         }
-        match tokens.first().unwrap() {
-            Token::Mul => Ok(Node::Mul(Box::new(lhs), Box::new(Parser::parse_prec2_helper(tokens[1..].to_vec())?))),
-            Token::Div => Ok(Node::Div(Box::new(lhs), Box::new(Parser::parse_prec2_helper(tokens[1..].to_vec())?))),
+        match tokens.first().unwrap().ty {
+            TokenTy::Mul => Ok(Node::Mul(Box::new(lhs), Box::new(Parser::parse_prec2_helper(tokens[1..].to_vec())?))),
+            TokenTy::Div => Ok(Node::Div(Box::new(lhs), Box::new(Parser::parse_prec2_helper(tokens[1..].to_vec())?))),
             _ => unreachable!()
         }
     }
@@ -159,8 +172,7 @@ impl Parser {
 
     pub(crate) fn parse_func( tokens : Vec<Token> ) -> Result<(Node, Vec<Token>),ParseError> {
         let name = Parser::extrct_str(tokens.first().unwrap().clone())?;
-        let grabber = Grabber{};
-        let (line, rem ) = grabber.grab_brac(tokens[1..].to_vec())?;
+        let (line, rem ) = Grabber::grab_brac(tokens[1..].to_vec())?;
         let nodes;
         if line.len() != 0 {
             nodes = Parser::parse_param(line)?;
@@ -170,9 +182,8 @@ impl Parser {
         Ok((Node::FCall(name, nodes), rem))
     }
 
-    fn parse_param( tokens : Vec<Token> ) -> Result<Vec<Node>,ParseError> {
-        let grabber = Grabber{};
-        let ndes = grabber.sep_on_comma(tokens)?;
+    fn parse_param( tokens : Vec<Token> ) -> Result<Vec<NodeTy>,ParseError> {
+        let ndes = Grabber::sep_on_comma(tokens)?;
         let mut nodes = Vec::new();
         for nde in ndes {
             nodes.push(Parser::parse_expr(nde)?);
@@ -181,7 +192,7 @@ impl Parser {
     }
 
     pub(crate) fn extrct_str( t : Token) -> Result<String,ParseError> {
-        if let Token::Value(x) = t {
+        if let TokenTy::Value(x) = t.ty {
             Ok(x)
         } else {
             panic!("{:?}",t)
@@ -189,43 +200,41 @@ impl Parser {
     }
     
     pub(crate) fn extrct_prm( t: Token) -> Result<Primitive,ParseError> {
-        match t {
-            Token::Int => Ok(Primitive::Int),
-            Token::String => Ok(Primitive::String),
+        match t.ty {
+            TokenTy::Int => Ok(Primitive::Int),
+            TokenTy::String => Ok(Primitive::String),
             _ => panic!("{:?}",t)
         }
     }
 
     fn parse_val( t: Token ) -> Result<Node,ParseError> {
-        match t {
-            Token::Value(x) => Ok(Node::Leaf(x)),
+        match t.ty {
+            TokenTy::Value(x) => Ok(Node::Leaf(x)),
             _ => panic!("{:?}",t)
         }
     }
 
     fn parse_bool_expr( tokens:Vec<Token>) -> Result<BoolNode,ParseError> {
-        let grabber = Grabber{};
-        let (bef, after) = grabber.sep_on_bool_op1(tokens)?;
+        let (bef, after) = Grabber::sep_on_bool_op1(tokens)?;
         let op = after.first().unwrap();
-        let lhs = Parser::parse_expr(bef)?;
-        let rhs = Parser::parse_expr(after[1..].to_vec())?;
-        match op {
-            Token::LT   =>  Ok(BoolNode::LThan(lhs,rhs)),
-            Token::GT   =>  Ok(BoolNode::GThan(lhs,rhs)),
-            Token::GTEQ =>  Ok(BoolNode::GThanEq(lhs,rhs)),
-            Token::LTEQ =>  Ok(BoolNode::LThanEq(lhs,rhs)),
-            Token::EQ   =>  Ok(BoolNode::Eq(lhs,rhs)),
-            Token::NEQ  =>  Ok(BoolNode::NEq(lhs,rhs)),
+        let lhs = Parser::parse_expr_nb(bef)?;
+        let rhs = Parser::parse_expr_nb(after[1..].to_vec())?;
+        match op.ty {
+            TokenTy::LT   =>  Ok(BoolNode::LThan(lhs,rhs)),
+            TokenTy::GT   =>  Ok(BoolNode::GThan(lhs,rhs)),
+            TokenTy::GTEQ =>  Ok(BoolNode::GThanEq(lhs,rhs)),
+            TokenTy::LTEQ =>  Ok(BoolNode::LThanEq(lhs,rhs)),
+            TokenTy::EQ   =>  Ok(BoolNode::Eq(lhs,rhs)),
+            TokenTy::NEQ  =>  Ok(BoolNode::NEq(lhs,rhs)),
             _ => {return Err(ParseError::ExpectButGot("Boolean operator".into(), op.clone()));}
         }
     }
 
     pub(crate) fn parse_fcall( tokens : Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let grabber = Grabber{};
-        let (mut line, rem ) = grabber.grab_line(tokens)?;
+        let (mut line, rem ) = Grabber::grab_line(tokens)?;
         let name = Parser::extrct_str(line.pop().unwrap())?;
-        let (par, _ ) = grabber.grab_brac(line)?;
-        let params = grabber.sep_on_comma(par)?;
+        let (par, _ ) = Grabber::grab_brac(line)?;
+        let params = Grabber::sep_on_comma(par)?;
         let mut nodes = Vec::new();
         for param in params {
             nodes.push(Parser::parse_expr(param)?);
@@ -239,8 +248,7 @@ impl Parser {
     }
 
     pub(crate) fn parse_overwrite(tokens : Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let grabber = Grabber{};
-        let (node, rem ) = grabber.grab_line(tokens)?;
+        let (node, rem ) = Grabber::grab_line(tokens)?;
         let name = Parser::extrct_str(node.first().unwrap().clone())?;
         let expr = Parser::parse_expr(node[2..].to_vec())?;
         Ok((Line::OverVar(name, expr),rem))
@@ -251,11 +259,18 @@ impl Parser {
 #[cfg(test)] 
 mod tests {
 
+
+    fn node(string : &str) -> NodeTy {
+        NodeTy::Node(Node::Leaf(string.into()))
+    }
+
+    use crate::parser::{Node, tokenizer::Tokenizer};
+
     use super::*;
     #[test]
     fn test_parse_val() -> Result<(),ParseError> {
-        let token = Token::Value("90".into());
-        let z = Parser::parse_val(token)?;
+        let token = TokenTy::Value("90".into());
+        let z = Parser::parse_val(Token::new(token, 0))?;
         assert_eq!(z,Node::Leaf("90".into()));
         Ok(())
     }
@@ -263,23 +278,24 @@ mod tests {
     #[test]
     fn test_parse_print() -> Result<(), ParseError>{
         let tokens = vec![
-            Token::Print,
-            Token::Value("9".into()),
-            Token::Plus,
-            Token::Value("9".into()),
-            Token::SemiColan
+            TokenTy::Print,
+            TokenTy::Value("9".into()),
+            TokenTy::Plus,
+            TokenTy::Value("9".into()),
+            TokenTy::SemiColan
         ];
-        let (p,_) = Parser::parse_print(tokens)?;
+        let (p,_) = Parser::parse_print(make_tokens(tokens))?;
         assert_eq!(p, 
             Line::Print(
-                Node::Add(
+                NodeTy::Node(Node::Add(
                     Box::new(Node::Leaf("9".into())),
                     Box::new(Node::Leaf("9".into()))
-                ))
+                )))
         );
         Ok(())
     }
 
+/* 
     #[test] 
     fn test_for() -> Result<(),ParseError>{
         let tokens = vec![
@@ -310,24 +326,25 @@ mod tests {
         );
         Ok(())
     }
+    */
 
     #[test] 
     fn test_parse_expr() -> Result<(),ParseError>{
         let tokens = 
         vec![
-            Token::Value("9".into()),
-            Token::Plus,
-            Token::Value("10".into()),
-            Token::Mul,
-            Token::Value("2".into()),
-            Token::Div,
-            Token::Value("12".into()),
-            Token::Plus,
-            Token::Value("43".into())
+            TokenTy::Value("9".into()),
+            TokenTy::Plus,
+            TokenTy::Value("10".into()),
+            TokenTy::Mul,
+            TokenTy::Value("2".into()),
+            TokenTy::Div,
+            TokenTy::Value("12".into()),
+            TokenTy::Plus,
+            TokenTy::Value("43".into())
         ];
-        let res = Parser::parse_expr(tokens)?;
+        let res = Parser::parse_expr(make_tokens(tokens))?;
         assert_eq!(res ,
-        Node::Add(
+        NodeTy::Node(Node::Add(
             Box::new(Node::Leaf("9".into())),
             Box::new(Node::Add(
                 Box::new(Node::Mul(
@@ -338,9 +355,10 @@ mod tests {
                     ))
                 )),
                 Box::new(Node::Leaf("43".into()))))  
-        ));
+        )));
         Ok(())
     }
+
     #[test]
     fn test_stuff() -> Result<(),ParseError> {
         let mut tokenizer = Tokenizer::new("Print 100 + 10 * 3 / 6 + 10;
@@ -350,7 +368,7 @@ mod tests {
         assert_eq!(
             line,
             Line::Print(
-                Node::Add(
+                NodeTy::Node(Node::Add(
                     Box::new(Node::Leaf("100".into())),
                     Box::new(Node::Add(
                         Box::new(Node::Mul(
@@ -363,8 +381,16 @@ mod tests {
                     ))
                 )
             )
-        );
+        ));
         Ok(())
+    }
+
+    fn make_tokens(tokens : Vec<TokenTy> ) -> Vec<Token> {
+        let mut  toks = Vec::new();
+        for token in tokens {
+            toks.push(Token::new(token, 0));
+        }
+        toks
     }
 
 }

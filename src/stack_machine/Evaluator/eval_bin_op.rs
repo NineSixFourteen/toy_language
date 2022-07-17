@@ -7,8 +7,35 @@ impl Evaluator {
         match (lhs,rhs) {
             (Value::Int(x),Value::Int(y)) => self.eval_int(x,y,cmd)?,
             (Value::String(x), Value::String(y)) => self.eval_string(x,y,cmd)?,
+            (Value::Float(x), Value::Float(y) ) => self.eval_float(x,y,cmd)?, 
+            (Value::Boolean(x),Value::Boolean(y)) => self.eval_bool(x,y,cmd)?,
             _ => return Err(StrError::OperandNotSupported)
         };
+        Ok(())
+    }
+    fn eval_float(&mut self, x: f32, y: f32, cmd: BinOp) -> Result<(),StrError>{
+        match cmd {
+            BinOp::Add   =>   self.stack.push(Value::Float(x + y)),
+            BinOp::Minus =>   self.stack.push(Value::Float(x - y)),
+            BinOp::Mul   =>   self.stack.push(Value::Float(x * y)),
+            BinOp::Div   =>   self.stack.push(Value::Float(x / y)),
+            BinOp::LT    =>   self.stack.push(Value::Boolean(x < y)),
+            BinOp::GT    =>   self.stack.push(Value::Boolean(x < y)),
+            BinOp::LTEQ  =>   self.stack.push(Value::Boolean(x <= y)),
+            BinOp::GTEQ  =>   self.stack.push(Value::Boolean(x >= y)),
+            BinOp::EQ    =>   self.stack.push(Value::Boolean(x == y)),
+            BinOp::NEQ   =>   self.stack.push(Value::Boolean(x != y)),
+            _ => return Err(StrError::OperandNotSupported)
+        }
+        Ok(())
+    }
+
+    fn eval_bool(&mut self, x: bool, y: bool, cmd: BinOp) -> Result<(),StrError> {
+        match cmd {
+            BinOp::BAnd => self.stack.push(Value::Boolean(x && y)),
+            BinOp::BOr => self.stack.push(Value::Boolean(x || y)),
+            _ => return Err(StrError::OperandNotSupported)
+        }
         Ok(())
     }
 
@@ -23,7 +50,10 @@ impl Evaluator {
             BinOp::LTEQ  => self.stack.push(Value::Boolean(x <= y)),
             BinOp::GTEQ  => self.stack.push(Value::Boolean(x >= y)),
             BinOp::EQ    => self.stack.push(Value::Boolean(x == y)),
-            BinOp::NEQ   => self.stack.push(Value::Boolean(x != y))
+            BinOp::NEQ   => self.stack.push(Value::Boolean(x != y)),
+            BinOp::And   => self.stack.push(Value::Int(x & y)),
+            BinOp::Or    => self.stack.push(Value::Int(x | y)),
+            _ => return Err(StrError::OperandNotSupported)
         }
         Ok(())
     }

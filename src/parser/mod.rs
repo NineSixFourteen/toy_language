@@ -20,17 +20,26 @@ pub(crate) struct Function {
 #[derive(Debug,PartialEq,Clone)]
 pub(crate) enum Primitive {
     Int, 
-    String
+    String,
+    Boolean,
+    Float, 
+    Char
 }
 #[derive(PartialEq, Debug, Clone)]
+pub(crate) enum NodeTy {
+    Node(Node),
+    BoolNode(BoolNode)
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub(crate) enum Line {
-    Print(Node),
+    Print(NodeTy),
     FCall(Node),
-    InitVar(Primitive,String,Node),
-    OverVar(String, Node),
-    For(String, Node, Node, Vec<Line>),
+    InitVar(Primitive,String,NodeTy),
+    OverVar(String, NodeTy),
+    For(Box<Line> , BoolNode, Box<Line>, Vec<Line>),
     If(BoolNode, Vec<Line>),
-    Return(Node)
+    Return(NodeTy)
 }
 
 #[derive(PartialEq,Debug,Clone)]
@@ -41,7 +50,7 @@ pub(crate) enum Node {
     Div(Box<Node> , Box<Node>),
     Leaf(String),
     LoadVar(String),
-    FCall(String, Vec<Node>),
+    FCall(String, Vec<NodeTy>),
     Nothing
 }
 
@@ -88,7 +97,7 @@ impl Parser {
     fn parse_fns(mut tokens: Vec<Token>) -> Result<(Vec<Token> , Vec<Function>),ParseError> {
         let mut funcs = Vec::new();
         while tokens.len() != 0 {
-            if tokens.first().unwrap() != &Token::Def {
+            if tokens.first().unwrap().ty != TokenTy::Def {
                 return Err(ParseError::ExpectButGot("Def".into(), tokens.first().unwrap().clone()));
             }
             let (func, rem) = Parser::parse_fn(tokens)?;
@@ -99,11 +108,10 @@ impl Parser {
     }
 
     fn parse_fn( tokens: Vec<Token> ) -> Result<(Function , Vec<Token>),ParseError> {
-        let y = Grabber{};
-        let ((start,body), rem ) = y.grab_fn(tokens)?;
+        let ((start,body), rem ) = Grabber::grab_fn(tokens)?;
         let ty = Parser::extrct_prm(start.get(1).unwrap().clone())?;
         let name = Parser::extrct_str(start.get(2).unwrap().clone())?;
-        let parms = y.sep_on_comma(start[4..start.len() - 1].into())?;
+        let parms = Grabber::sep_on_comma(start[4..start.len() - 1].into())?;
         let params = Parser::parse_into_params(parms)?; 
         let (body, _ ) = Parser::parse_lines(body)?;
         let func = Function{
@@ -126,13 +134,15 @@ impl Parser {
     }
 
     fn parse_line( tokens: Vec<Token> ) -> Result<(Line,Vec<Token>),ParseError> {
-        match tokens.first().unwrap() {
-            Token::Print => Parser::parse_print(tokens),
-            Token::For => Parser::parse_for(tokens),
-            Token::If => Parser::parse_if(tokens),
-            Token::Else => todo!(),
-            Token::Return => Parser::parse_return(tokens),
-            Token::Int | Token::String => Parser::parse_init_var(tokens),
+        match tokens.first().unwrap().ty {
+            TokenTy::Print => Parser::parse_print(tokens),
+            TokenTy::For => Parser::parse_for(tokens),
+            TokenTy::If => Parser::parse_if(tokens),
+            TokenTy::Else => todo!(),
+            TokenTy::Return => Parser::parse_return(tokens),
+            TokenTy::Int  | TokenTy::String  |
+            TokenTy::Char | TokenTy::Boolean | 
+            TokenTy::Float => Parser::parse_init_var(tokens),
             _ => Parser::parse_non_line(tokens)
         }
     }
@@ -141,9 +151,9 @@ impl Parser {
         if tokens.len() < 2 {
             panic!("To small")
         }
-        match tokens.get(1).unwrap() {
-            Token::LBrac => Parser::parse_fcall(tokens),
-            Token::Equal => Parser::parse_overwrite(tokens),
+        match tokens.get(1).unwrap().ty {
+            TokenTy::LBrac => Parser::parse_fcall(tokens),
+            TokenTy::Equal => Parser::parse_overwrite(tokens),
             _ => panic!("Unkown line")
         }
     }
@@ -169,7 +179,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::Primitive;
+    use crate::parser::{Primitive, NodeTy};
 
     use super::{Tokenizer,Parser,Line,Function, Node, ParseError};
 
@@ -190,8 +200,8 @@ mod tests {
             name: "main".into(), 
             ty : Primitive::Int,
             body: vec![
-                Line::Print(Node::Leaf("x".into())),
-                Line::Print(Node::Leaf("y".into()))
+                Line::Print(NodeTy::Node(Node::Leaf("x".into()))),
+                Line::Print(NodeTy::Node(Node::Leaf("y".into())))
             ], 
             params: vec![
                 ("x".into(),Primitive::Int),

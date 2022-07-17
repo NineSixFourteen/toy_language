@@ -153,9 +153,14 @@ impl Evaluator {
             Value::Nothing => todo!(),
             Value::Int(x) => println!(">{}",x),
             Value::String(x) => println!(">{}",x),
-            Value::Boolean(x) => println!(">{}",x)
+            Value::Boolean(x) => println!(">{}",x),
+            Value::Float(x) => println!(">{}",x),
+            Value::Char(x) => println!(">{}",x)
         }
         Ok(())
     }
+
+   
+    
 
 }

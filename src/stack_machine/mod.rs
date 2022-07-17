@@ -1,3 +1,5 @@
+use core::f32;
+
 #[allow(non_snake_case)]
 pub(crate) mod Evaluator;
 
@@ -18,13 +20,32 @@ impl Function {
     
 }
 
-#[derive(Debug,Clone,PartialEq, Eq)]
+#[derive(Debug,Clone)]
 pub(crate) enum Value {
     Nothing,
     Int(i64),
     String(String),
-    Boolean(bool)
+    Boolean(bool),
+    Float(f32),
+    Char(char)
 }
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Int(l0), Self::Int(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
+            (Self::Float(l0), Self::Float(r0)) => l0 == r0,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Value {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
 
 #[derive(Debug,Clone,PartialEq, Eq)]
 pub(crate) enum StrError {
@@ -65,7 +86,11 @@ pub(crate) enum BinOp {
     LTEQ,
     GTEQ,
     EQ,
-    NEQ
+    NEQ,
+    And,
+    Or,
+    BAnd,
+    BOr
 }
 
 #[derive(Debug, Clone,PartialEq, Eq)]
