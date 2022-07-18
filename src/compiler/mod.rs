@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 
 use crate::stack_machine::{Command, Evaluator::Evaluator,Function};
-use crate::parser::{Program, Function as OtherFunction, Line};
+use crate::parser::{Program, Function as OtherFunction, Line, Primitive};
 #[allow(dead_code)]
 mod cmpl_ln;
 
 pub(crate) struct Compiler {
-    pub commands : Vec<Command> 
+    pub commands : Vec<Command>,
+    pub vars : HashMap<String,Primitive>
 }
 
 impl Compiler {
-
     pub(crate) fn compile(prog : Program) -> Evaluator {
-        let compiler = Compiler{commands : vec![]};
+        let compiler = Compiler{commands : vec![], vars :  HashMap::new()};
         match prog {
             Program{ main, methods } => {
                 let z : HashMap<String, Function> = methods
@@ -35,7 +35,7 @@ impl Compiler {
         match func {
             OtherFunction{ name, ty: _,  body, params } => {
                 let f : Function;
-                let mut comp = Compiler{ commands: Vec::new() };
+                let mut comp = Compiler{ commands: Vec::new(), vars: params.clone() };
                 comp.compile_lines(body);
                 f = Function::new(
                   params.iter().map(|(a,_b)| a.clone()).collect(), 

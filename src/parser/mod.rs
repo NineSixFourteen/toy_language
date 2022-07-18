@@ -1,6 +1,8 @@
 pub(crate) mod tokenizer;
 #[allow(dead_code)]
 pub(crate) mod grabber;
+use std::collections::HashMap;
+
 use tokenizer::*;
 use grabber::*;
 
@@ -15,7 +17,7 @@ pub(crate) struct Function {
    pub name   : String, 
    pub ty     : Primitive,
    pub body   : Vec<Line>,
-   pub params : Vec<(String, Primitive)> 
+   pub params : HashMap<String,Primitive> 
 }
 #[derive(Debug,PartialEq,Clone)]
 pub(crate) enum Primitive {
@@ -158,27 +160,25 @@ impl Parser {
         }
     }
 
-    fn parse_into_params(tokens : Vec<Vec<Token>> ) -> Result<Vec<(String, Primitive)>,ParseError> {
+    fn parse_into_params(tokens : Vec<Vec<Token>> ) -> Result<HashMap<String,Primitive>,ParseError> {
         if tokens.len() == 1 && tokens.get(0).unwrap().len() == 0  {
-            return Ok(Vec::new());
+            return Ok(HashMap::new());
         }
-        let mut vec = Vec::new();
+        let mut vec = HashMap::new();
         for pair in tokens {
             if pair.len() != 2{
                 return Err(ParseError::NotValidParamter);
             }
-            vec.push((Parser::extrct_str(pair.get(1).unwrap().clone())?,Parser::extrct_prm(pair.get(0).unwrap().clone())?));
+            vec.insert(Parser::extrct_str(pair.get(1).unwrap().clone())?,Parser::extrct_prm(pair.get(0).unwrap().clone())?);
         }
         Ok(vec)
     }
-
-
-
-
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crate::parser::{Primitive, NodeTy};
 
     use super::{Tokenizer,Parser,Line,Function, Node, ParseError};
@@ -203,10 +203,10 @@ mod tests {
                 Line::Print(NodeTy::Node(Node::Leaf("x".into()))),
                 Line::Print(NodeTy::Node(Node::Leaf("y".into())))
             ], 
-            params: vec![
+            params: HashMap::from([
                 ("x".into(),Primitive::Int),
                 ("y".into(),Primitive::Int)
-            ] 
+            ])
         });
         Ok(())
     }

@@ -1,6 +1,9 @@
 def int main() {
+    float f = 9.2 ;
+    float g = 9.2 * 2 ; 
     Print bob(lol(lol(lol(lol(lol(lol(10)))))) , 22); 
     Print 111; 
+    Print f ;
     return 100;
 }
             

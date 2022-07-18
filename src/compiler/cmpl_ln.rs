@@ -1,12 +1,13 @@
-use crate::{parser::{Line, Node, BoolNode, NodeTy}, stack_machine::*};
+use crate::{parser::{Line, Node, BoolNode, NodeTy, Primitive}, stack_machine::*};
 
 use super::Compiler;
 
 impl Compiler{
 
     pub(crate) fn complile_init_var(&mut self, line : Line)  {
-        if let Line::InitVar(_ty, name, val) = line {
-            self.compile_expr(val);
+        if let Line::InitVar(ty, name, val) = line {
+            self.compile_expr(val,ty.clone());
+            self.vars.insert(name.clone(), ty);
             self.commands.push(Command::VCmd(VarCmd::SetVar(name)));
         } else {
             unreachable!()
@@ -16,7 +17,7 @@ impl Compiler{
 
     pub(crate) fn compile_return(&mut self, line: Line) {
         if let Line::Return(val ) = line {
-            self.compile_expr(val);
+            self.compile_expr(val,Primitive::Int); // TODO FIX 
             self.commands.push(Command::OCmd(OtherCmd::Return));
         } else {
             unreachable!()
@@ -36,7 +37,7 @@ impl Compiler{
 
     pub(crate) fn compile_print(&mut self, line: Line)  {
         if let Line::Print(val) = line {
-            self.compile_expr(val);
+            self.compile_expr(val,Primitive::Int); //TODO_Fix
             self.commands.push(Command::OCmd(OtherCmd::Print));
         } else {
             unreachable!()
@@ -45,12 +46,14 @@ impl Compiler{
 
     pub(crate) fn compile_overwrite(&mut self, line : Line) {
         if let Line::OverVar(x, y) = line {
-            self.compile_expr(y);
+        let z = self.vars.get(&x).unwrap();
+            self.compile_expr(y, z.clone());
             self.commands.push(Command::VCmd(VarCmd::SetVar(x)));
         }   
     }
 
-    fn compile_expr(&mut self, node : NodeTy)  {
+
+    fn compile_expr(&mut self, node : NodeTy, ty : Primitive)  {
         match node {
             NodeTy::Node(pol) => {
                 match pol.clone() {
@@ -59,8 +62,8 @@ impl Compiler{
                     Node::Sub(x, y) |
                     Node::Div(x, y) 
                     => {
-                        self.compile_expr(NodeTy::Node(*x));
-                        self.compile_expr(NodeTy::Node(*y));
+                        self.compile_expr(NodeTy::Node(*x),ty.clone());
+                        self.compile_expr(NodeTy::Node(*y),ty);
                         match pol {
                             Node::Add(_, _) => self.commands.push(Command::BOp(BinOp::Add)),
                             Node::Sub(_, _) => self.commands.push(Command::BOp(BinOp::Minus)), 
@@ -70,63 +73,45 @@ impl Compiler{
                         }
                     }
                     Node::Leaf(x) => {
-                        match x.as_str() {
-                            "true"=> self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(true)))),
-                            "false" => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(false)))),
-                            _ => {
-                                match x.parse::<i64>() {
-                                    Ok(i) => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Int(i)))),
-                                    Err(_) => match x.parse::<f32> () {
-                                        Ok(i) => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Float(i)))),
-                                        Err(_) => {
-                                            if x.starts_with("\"") && x.ends_with("\"") {
-                                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::String(x)))); 
-                                            } else if x.starts_with("\'") && x.ends_with("\'") && x.len() == 3 {
-                                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::Char(x.chars().nth(1).unwrap()))));
-                                            } else {
-                                                self.commands.push(Command::VCmd(VarCmd::GetVar(x)));
-                                            } 
-                                        }
-                                    }
-                                }
+                        if self.vars.contains_key(&x) {
+                            self.commands.push(Command::VCmd(VarCmd::GetVar(x.clone())));
+                            return ;
+                        }
+                        match ty {
+                            Primitive::Int => {
+                                println!("{}",x.clone());
+                                let x : i64 = x.parse().unwrap();
+                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::Int(x))))
+                            }
+                            Primitive::String => {
+                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::String(x))))
+                            },
+                            Primitive::Boolean => match x.as_str() {
+                                "true" => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(true)))),
+                                "false" => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(false)))),
+                                _ => panic!()
+                            },
+                            Primitive::Float => {
+                                let x : f32 = x.parse().unwrap();
+                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::Float(x))))
+                            }
+                            Primitive::Char => {
+                                self.commands.push(Command::OCmd(OtherCmd::Push(Value::Char(x.chars().nth(1).unwrap()))))
                             }
                         }
                     }
                     Node::LoadVar(x) => self.commands.push(Command::VCmd(VarCmd::GetVar(x))),
                     Node::FCall(x, nodes) => {
                         for node in nodes {
-                            self.compile_expr(node);
+                            self.compile_expr(node,Primitive::Int); //TODO GET METHOD INFO
                         }
                         self.commands.push(Command::OCmd(OtherCmd::Func(x)));
                     }
                     Node::Nothing => panic!(),
                 }
             }
-            NodeTy::BoolNode(z) => match &z {
-                BoolNode::LThan(x, y) |
-                BoolNode::GThan(x, y) |
-                BoolNode::GThanEq(x, y) |
-                BoolNode::LThanEq(x, y) |
-                BoolNode::Eq(x, y) |
-                BoolNode::NEq(x, y) => {
-                    self.compile_expr(NodeTy::Node(x.clone()));
-                    self.compile_expr(NodeTy::Node(y.clone()));
-                    let s = match z {
-                        BoolNode::LThan(_, _)   => Command::BOp(BinOp::LT),
-                        BoolNode::GThan(_, _)   => Command::BOp(BinOp::GT),
-                        BoolNode::GThanEq(_, _) => Command::BOp(BinOp::GTEQ),
-                        BoolNode::LThanEq(_, _) => Command::BOp(BinOp::LTEQ),
-                        BoolNode::Eq(_, _)      => Command::BOp(BinOp::EQ),
-                        BoolNode::NEq(_, _)     => Command::BOp(BinOp::NEQ),
-                        _ => unreachable!(),
-                    };
-                    self.commands.push(s);
-                }
-                BoolNode::And(_x, _y) |
-                BoolNode::Or(_x, _y) => {
-
-                }
-                BoolNode::Not(_) => todo!(),
+            NodeTy::BoolNode(z) => {
+                self.compile_bool(z);
             },
         }
     }
@@ -165,8 +150,8 @@ impl Compiler{
             BoolNode::LThanEq(x, y) |
             BoolNode::Eq(     x, y) |
             BoolNode::NEq(    x, y) => {
-                self.compile_expr(NodeTy::Node(x.clone()));
-                self.compile_expr(NodeTy::Node(y.clone()));
+                self.compile_expr(NodeTy::Node(x.clone()),Primitive::Int);//TODO FIGURE OUT TYPES
+                self.compile_expr(NodeTy::Node(y.clone()),Primitive::Int);
                 match node {
                     BoolNode::LThan(_, _)   => self.commands.push(Command::BOp(BinOp::LT)),
                     BoolNode::GThan(_, _)   => self.commands.push(Command::BOp(BinOp::GT)),
@@ -186,3 +171,5 @@ impl Compiler{
     }
 
 }
+
+

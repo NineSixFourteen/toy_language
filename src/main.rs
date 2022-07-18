@@ -28,7 +28,7 @@ fn main() {
             let mut c = Compiler::compile(x);
             match c.eval() {
                 Ok(_res) => {},
-                Err(_) =>panic!(),
+                Err(x) =>panic!("Error : {:?}",x ),
             }
         }
         Err(p) => println!("ParseError : {:?}",p),

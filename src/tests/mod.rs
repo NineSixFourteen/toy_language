@@ -1,34 +1,35 @@
 #[allow(dead_code,unused_imports)]
 mod tests{
 
-        use crate::{parser::{NodeTy, tokenizer::Tokenizer, Parser, Line, Node, BoolNode}, stack_machine::{StrError, Value, Evaluator::Evaluator}, compiler::Compiler};
+        use std::collections::HashMap;
 
-    /* 
+        use crate::{parser::{NodeTy, tokenizer::Tokenizer, Parser, Line, Node, BoolNode, Primitive}, stack_machine::{StrError, Value, Evaluator::Evaluator}, compiler::Compiler};
+
+    
     #[test]
     fn test_for() {
-        let string = "for i, 0, 15 {Print 100;}";
+        let string = "for(int i = 0; i < 15;i = i + 1) {Print 100;}";
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
         let tokens = tokenizer.tokens;
         let y = Parser::parse_for(tokens);
-        let mut x = Line::Print(Node::Nothing) ; 
+        let mut x = Line::Print(NodeTy::Node(Node::Nothing)) ; 
         match y {
             Ok((z,_)) => x = z,
             Err(_) => {},
         }
         assert_eq!(x,
-        Line::For(
-            "i".into(),
-            Node::Leaf("0".into()),
-            Node::Leaf("15".into()),
+            Line::For(
+            Box::new(Line::InitVar(Primitive::Int, "i".into(),NodeTy::Node(Node::Leaf("0".into())))),
+            BoolNode::LThan(Node::Leaf("i".into()), Node::Leaf("15".into())),
+            Box::new(Line::OverVar("i".into(), NodeTy::Node(Node::Add(Box::new(Node::Leaf("i".into())), Box::new(Node::Leaf("1".into())))))),
             vec![
-                Line::Print(
-                    Node::Leaf("100".into())
-                )
+                Line::Print(NodeTy::Node(Node::Leaf("100".into())))
             ]
-        ));
+            )
+        );
     }
-    */
+    
 
     #[test]
     fn test_if() {
@@ -178,7 +179,8 @@ mod tests{
             Err(x) => panic!("ParseError : {:?}",x),
         }
         let mut compiler = Compiler{
-            commands : Vec::new()
+            commands : Vec::new(),
+            vars : HashMap::new()
         };
         compiler.compile_lines(x);
         let commands = compiler.commands;
