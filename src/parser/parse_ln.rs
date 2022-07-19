@@ -203,6 +203,9 @@ impl Parser {
         match t.ty {
             TokenTy::Int => Ok(Primitive::Int),
             TokenTy::String => Ok(Primitive::String),
+            TokenTy::Boolean => Ok(Primitive::Boolean),
+            TokenTy::Char => Ok(Primitive::Char),
+            TokenTy::Float => Ok(Primitive::Float),
             _ => panic!("{:?}",t)
         }
     }
@@ -215,6 +218,14 @@ impl Parser {
     }
 
     fn parse_bool_expr( tokens:Vec<Token>) -> Result<BoolNode,ParseError> {
+        if tokens.len() == 1 {
+            let tok = tokens.first().unwrap().clone();
+            if let TokenTy::Value(x) = tok.ty {
+                return Ok(BoolNode::TFVar(x));
+            } else {
+                panic!()
+            }
+        }
         let (bef, after) = Grabber::sep_on_bool_op1(tokens)?;
         let op = after.first().unwrap();
         let lhs = Parser::parse_expr_nb(bef)?;

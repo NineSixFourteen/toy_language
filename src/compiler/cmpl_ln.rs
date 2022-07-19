@@ -102,8 +102,23 @@ impl Compiler{
                     }
                     Node::LoadVar(x) => self.commands.push(Command::VCmd(VarCmd::GetVar(x))),
                     Node::FCall(x, nodes) => {
-                        for node in nodes {
-                            self.compile_expr(node,Primitive::Int); //TODO GET METHOD INFO
+                        for (k,v) in &self.funcs{
+                            print!("{} _ ",k);
+                            for s in v {
+                                print!("{:?}, ", s);
+                            }
+                            println!()
+                        }
+                        let tys  = self.funcs.get(&x).unwrap();
+                        let types = &tys[..tys.len()-1].to_vec();
+                        if types.len() != nodes.len() {
+                            for node in &nodes {
+                                println!("{:?}", node)
+                            }
+                            panic!("{} __ {} __ {}", types.len(), nodes.len(), x)
+                        }
+                        for num in 0..types.len() {
+                            self.compile_expr(nodes.get(num).unwrap().clone(),types.get(num).unwrap().clone()); //TODO GET METHOD INFO
                         }
                         self.commands.push(Command::OCmd(OtherCmd::Func(x)));
                     }
@@ -167,6 +182,20 @@ impl Compiler{
                 todo!()
             }
             BoolNode::Not(_) => todo!(),
+            BoolNode::TFVar(x) => {
+                match x.as_str() {
+                    "true"  => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(true)))),
+                    "false" => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(false)))),
+                    _ => {
+                        if self.vars.contains_key(x) {
+                            self.commands.push(Command::VCmd(VarCmd::GetVar(x.clone())))
+                        } else {
+                            panic!()
+                        }
+                    }
+                    
+                }
+            }
         }
     }
 

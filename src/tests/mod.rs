@@ -1,12 +1,9 @@
 #[allow(dead_code,unused_imports)]
 mod tests{
-
         use std::collections::HashMap;
-
         use crate::{parser::{NodeTy, tokenizer::Tokenizer, Parser, Line, Node, BoolNode, Primitive}, stack_machine::{StrError, Value, Evaluator::Evaluator}, compiler::Compiler};
-
     
-    #[test]
+        #[test]
     fn test_for() {
         let string = "for(int i = 0; i < 15;i = i + 1) {Print 100;}";
         let mut tokenizer = Tokenizer::new(string);
@@ -124,12 +121,20 @@ mod tests{
         "
             def int main() {
                 Print bob(lol(lol(lol(lol(lol(lol(10)))))) , 22); 
+                Print cons(false);
                 Print 111; 
                 return 100;
             }
             
             def int bob(int x , int y) {
                 return 10 + x + y;
+            }
+
+            def int cons(boolean b) {
+                if b { 
+                    return 1;
+                }
+                return 9; 
             }
 
             def int lol(int x) {
@@ -167,7 +172,6 @@ mod tests{
         Ok(())
     }
 
-
     fn test_code(string : &str, val : Value) -> Result<(),StrError> {
         let mut tokenizer = Tokenizer::new(string);
         tokenizer.tokenize();
@@ -180,7 +184,8 @@ mod tests{
         }
         let mut compiler = Compiler{
             commands : Vec::new(),
-            vars : HashMap::new()
+            vars : HashMap::new(),
+            funcs : HashMap::new()
         };
         compiler.compile_lines(x);
         let commands = compiler.commands;

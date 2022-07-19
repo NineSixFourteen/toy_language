@@ -7,14 +7,19 @@ mod cmpl_ln;
 
 pub(crate) struct Compiler {
     pub commands : Vec<Command>,
-    pub vars : HashMap<String,Primitive>
+    pub vars : HashMap<String,Primitive>,
+    pub funcs : HashMap<String, Vec<Primitive>>
 }
 
 impl Compiler {
     pub(crate) fn compile(prog : Program) -> Evaluator {
-        let compiler = Compiler{commands : vec![], vars :  HashMap::new()};
         match prog {
             Program{ main, methods } => {
+                let l : HashMap<String,Vec<Primitive>> = get_func_desc(methods.clone()); 
+                for (k, _v) in &l {
+                    println!("{}",k)
+                }
+                let compiler = Compiler{commands : vec![], vars :  HashMap::new(), funcs : l};
                 let z : HashMap<String, Function> = methods
                 .iter()
                 .map(|x| compiler.compile_fn(x.clone()))
@@ -24,7 +29,7 @@ impl Compiler {
                     vars: HashMap::new(),
                     stack: Vec::new(),
                     point: 0,
-                    main: main,
+                    main,
                     funcs: z
                 }
             }
@@ -35,7 +40,7 @@ impl Compiler {
         match func {
             OtherFunction{ name, ty: _,  body, params } => {
                 let f : Function;
-                let mut comp = Compiler{ commands: Vec::new(), vars: params.clone() };
+                let mut comp = Compiler{ commands: Vec::new(), vars: params.clone(),  funcs: self.funcs.clone()};
                 comp.compile_lines(body);
                 f = Function::new(
                   params.iter().map(|(a,_b)| a.clone()).collect(), 
@@ -65,4 +70,14 @@ impl Compiler {
     }
 
     
+}
+
+fn get_func_desc(funcs: Vec<OtherFunction>) -> HashMap<String, Vec<Primitive>> {
+    let mut map = HashMap::new();
+    for OtherFunction { name, ty, body: _ , params } in funcs {
+        let mut val : Vec<Primitive> = params.values().cloned().collect();
+        val.push(ty.clone());
+        map.insert(name, val);
+    }
+    map
 }

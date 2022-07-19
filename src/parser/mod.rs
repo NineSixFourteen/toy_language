@@ -66,7 +66,8 @@ pub(crate) enum BoolNode {
     NEq(Node,Node),
     And(Box<BoolNode>,Box<BoolNode>),
     Or(Box<BoolNode>,Box<BoolNode>),
-    Not(Box<BoolNode>)
+    Not(Box<BoolNode>),
+    TFVar(String)
 }
 #[derive(Debug)]
 pub(crate) enum ParseError {
@@ -156,7 +157,7 @@ impl Parser {
         match tokens.get(1).unwrap().ty {
             TokenTy::LBrac => Parser::parse_fcall(tokens),
             TokenTy::Equal => Parser::parse_overwrite(tokens),
-            _ => panic!("Unkown line")
+            _ => panic!("Unkown line {:?}", tokens.get(1).unwrap())
         }
     }
 
