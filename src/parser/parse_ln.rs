@@ -10,7 +10,6 @@ impl Parser {
      }
     
     pub(crate)fn parse_for(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-
         let (line, rem)     = Grabber::grab_brac(tokens[1..].to_vec())?;
         let (body, rem)     = Grabber::grab_brac(rem)?;
         let (init      , rem2)   = Parser::parse_line(line)?;
@@ -28,11 +27,26 @@ impl Parser {
         let bool = Parser::parse_bool_expr(line[1..].to_vec())?;
         let (body, rem ) = Grabber::grab_brac(rem)?;
         let (lines , _ ) = Parser::parse_lines(body)?;
-        Ok((Line::If(bool, lines),rem))
+        let (elses , rem) = Parser::parse_elses(rem)?;
+        Ok((Line::If(bool, lines, elses),rem))
     }
 
-    pub(crate) fn parse_else(&self, _tokens: Vec<Token>) -> (Line, Vec<Token>) {
-        todo!()
+    pub(crate) fn parse_elses(mut tokens: Vec<Token>) -> Result<(Vec<Line> , Vec<Token>),ParseError> {
+        let mut lines = Vec::new();
+        while tokens.len() != 0 && tokens.first().unwrap().ty == TokenTy::Else {
+            let (line, rem ) = Grabber::grab_tokens_before(tokens, TokenTy::LCur)?;
+            let bool;
+            if line.len() == 1 {
+                bool = BoolNode::TFVar("true".into());
+            }else {
+                bool = Parser::parse_bool_expr(line[2..].to_vec())?;
+            }
+            let (body, rem ) = Grabber::grab_brac(rem)?;
+            let (lin , _ ) = Parser::parse_lines(body)?;
+            lines.push(Line::If(bool, lin, Vec::new()));
+            tokens = rem;
+        } 
+        Ok((lines, tokens))
     }
 
     pub(crate)fn parse_return(tokens: Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
@@ -169,7 +183,6 @@ impl Parser {
         }
     }
 
-
     pub(crate) fn parse_func( tokens : Vec<Token> ) -> Result<(Node, Vec<Token>),ParseError> {
         let name = Parser::extrct_str(tokens.first().unwrap().clone())?;
         let (line, rem ) = Grabber::grab_brac(tokens[1..].to_vec())?;
@@ -270,7 +283,6 @@ impl Parser {
 #[cfg(test)] 
 mod tests {
 
-
     fn node(string : &str) -> NodeTy {
         NodeTy::Node(Node::Leaf(string.into()))
     }
@@ -305,39 +317,6 @@ mod tests {
         );
         Ok(())
     }
-
-/* 
-    #[test] 
-    fn test_for() -> Result<(),ParseError>{
-        let tokens = vec![
-            Token::For,
-            Token::Value("i".into()),
-            Token::Comma,
-            Token::Value("0".into()),
-            Token::Comma,
-            Token::Value("15".into()),
-            Token::LCur,
-                Token::Print,
-                Token::Value("100".into()),
-                Token::SemiColan,
-            Token::RCur
-        ];
-        let (line,_) = Parser::parse_for(tokens)?;
-        assert_eq!(line,
-            Line::For(
-                "i".into(), 
-                Node::Leaf("0".into()), 
-                Node::Leaf("15".into()), 
-                vec![
-                    Line::Print(
-                        Node::Leaf("100".into())
-                    )
-                ]
-            )
-        );
-        Ok(())
-    }
-    */
 
     #[test] 
     fn test_parse_expr() -> Result<(),ParseError>{

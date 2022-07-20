@@ -40,7 +40,7 @@ pub(crate) enum Line {
     InitVar(Primitive,String,NodeTy),
     OverVar(String, NodeTy),
     For(Box<Line> , BoolNode, Box<Line>, Vec<Line>),
-    If(BoolNode, Vec<Line>),
+    If(BoolNode, Vec<Line>,Vec<Line>),
     Return(NodeTy)
 }
 
@@ -69,6 +69,7 @@ pub(crate) enum BoolNode {
     Not(Box<BoolNode>),
     TFVar(String)
 }
+
 #[derive(Debug)]
 pub(crate) enum ParseError {
     ExpectButGot(String, Token),
@@ -78,7 +79,6 @@ pub(crate) enum ParseError {
     NoMainFunction
 
 } 
-
 
 pub(crate) struct Parser {}
 
@@ -174,6 +174,8 @@ impl Parser {
         }
         Ok(vec)
     }
+
+   
 }
 
 #[cfg(test)]

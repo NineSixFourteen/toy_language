@@ -79,7 +79,6 @@ impl Compiler{
                         }
                         match ty {
                             Primitive::Int => {
-                                println!("{}",x.clone());
                                 let x : i64 = x.parse().unwrap();
                                 self.commands.push(Command::OCmd(OtherCmd::Push(Value::Int(x))))
                             }
@@ -132,13 +131,54 @@ impl Compiler{
     }
 
     pub(crate) fn compile_if(&mut self, line : Line) {
-        if let Line::If(node, lines) = line {
-            self.compile_bool(node);
-            let pos = self.commands.len();
-            self.commands.push(Command::JCmd(JmpCmd::IFFal(0)));
-            self.compile_lines(lines);
-            self.update_jmp(pos, self.commands.len());
+        if let Line::If(node, lines,elses) = line {
+            if elses.len() == 0 {
+                self.compile_bool(node);
+                let pos = self.commands.len();
+                self.commands.push(Command::JCmd(JmpCmd::IFFal(0)));
+                self.compile_lines(lines);
+                self.update_jmp(pos, self.commands.len());
+            } else {
+                let mut x = Vec::new(); // Locations of commands that jumps have to be updated
+                x.push(self.compile_if_bool(node));
+                for line in &elses {
+                    if let Line::If(node,_  ,_ ) = line {
+                        x.push(self.compile_if_bool(node.clone()));
+                    } else {
+                        panic!()
+                    }
+                }
+                let mut y = Vec::new();
+                y.push(self.commands.len());
+                self.compile_lines(lines);
+                let mut z = Vec::new();
+                z.push(self.commands.len());
+                self.commands.push(Command::JCmd(JmpCmd::GOTO(0)));
+                for line in elses {
+                    if let Line::If(_,lines  ,_ ) = line {
+                        y.push(self.commands.len() );
+                        self.compile_lines(lines);
+                        z.push(self.commands.len());
+                        self.commands.push(Command::JCmd(JmpCmd::GOTO(0)));
+                    } else {
+                        panic!()
+                    }
+                }
+                self.commands.pop();
+                for i in  0..y.len() {
+                    self.update_jmp(x.get(i).unwrap().clone(), y.get(i).unwrap().clone())
+                }
+                for i in z[..z.len()-1].to_vec() {
+                    self.update_jmp(i, self.commands.len());
+                } 
+            }
         }
+    }
+
+    fn compile_if_bool(&mut self, node : BoolNode) -> usize {
+        self.compile_bool(node);
+        self.commands.push(Command::JCmd(JmpCmd::IFTru(0)));
+        return self.commands.len() - 1;
     }
 
     fn update_jmp(&mut self, pos : usize, loc : usize){
@@ -151,9 +191,14 @@ impl Compiler{
                     JmpCmd::IFFal(_) => *y = Command::JCmd(JmpCmd::IFFal(loc))
                 };
             }
-            Command::BOp(_) |
-            Command::VCmd(_) |
-            Command::OCmd(_) => panic!()
+            Command::BOp(_)   |
+            Command::VCmd(_)  |
+            Command::OCmd(_) => {
+                println!("{} __ {}",pos,loc);
+                for com in &self.commands {
+                    println!("{:?}", com);
+                }
+                panic!()}
         }
     }
 

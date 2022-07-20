@@ -63,11 +63,13 @@ impl Compiler {
             Line::InitVar(_, _, _) => self.complile_init_var(line),
             Line::OverVar(_, _) => self.compile_overwrite(line),
             Line::For (_,_,_,_) => self.compile_for(line),
-            Line::If(_, _) => self.compile_if(line),
+            Line::If(_, _,_) => self.compile_if(line),
             Line::Return(_) => self.compile_return(line),
             Line::FCall(_) => todo!(),
         }
     }
+
+  
 
     
 }

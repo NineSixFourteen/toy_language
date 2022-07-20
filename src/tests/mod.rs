@@ -48,7 +48,7 @@ mod tests{
                 ), 
                 vec![
                   Line::Print(NodeTy::Node(Node::Leaf("100".into())))  
-                ])   
+                ],Vec::new())
         );
     }
 
@@ -154,6 +154,42 @@ mod tests{
             }
         ";
         test_prog(message, Value::Boolean(false))
+    }
+
+    #[test] 
+    fn test_nutty_if() -> Result<(),StrError> {
+        let message = 
+        "
+            def int main(){
+                if false  {
+                    if false {
+                        Print 100;
+                    }
+                    return 10 ;
+                } else if false {
+                    if false {
+                        Print 100;
+                    } else if true {
+                        Print 10; 
+                    }
+                    return 2 ;
+                } else if false {
+                    for(int i = 0; i < 100; i = i + 1){
+                        if true {
+                            Print 100;
+                        }
+                    }
+                    return 3 ; 
+                } else if true {
+                    return 100;
+                } else {
+                    Print 100;
+                }
+                Print 100;
+                return 10;
+            }
+        ";
+        test_prog(message, Value::Int(100))
     }
 
     fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
