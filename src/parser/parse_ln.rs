@@ -230,7 +230,26 @@ impl Parser {
         }
     }
 
-    fn parse_bool_expr( tokens:Vec<Token>) -> Result<BoolNode,ParseError> {
+    fn parse_bool_expr(tokens : Vec<Token>) -> Result<BoolNode,ParseError> {
+        if no_and_or_or(tokens.clone()) {
+            Parser::parse_bool_expr_2(tokens.clone())
+        } else if only_ands(tokens.clone()) {
+            Parser::parse_ands(tokens.clone()) 
+        } else {
+            let (b_or, a_or) = Grabber::grab_or(tokens)?;
+            Ok(BoolNode::Or(Box::new(Parser::parse_ands(b_or)?), Box::new(Parser::parse_bool_expr(a_or)?)))
+        }
+    }
+    pub(crate) fn parse_ands(tokens: Vec<Token>) -> Result<BoolNode, ParseError> {
+        if no_and_or_or(tokens.clone()) {
+            Parser::parse_bool_expr_2(tokens.clone())
+        } else {
+            let (b_and, a_and) = Grabber::grab_and(tokens)?;
+            Ok(BoolNode::And(Box::new(Parser::parse_bool_expr_2(b_and)?), Box::new(Parser::parse_ands(a_and)?)))
+        }
+    }
+
+    fn parse_bool_expr_2( tokens:Vec<Token>) -> Result<BoolNode,ParseError> {
         if tokens.len() == 1 {
             let tok = tokens.first().unwrap().clone();
             if let TokenTy::Value(x) = tok.ty {
@@ -278,6 +297,27 @@ impl Parser {
         Ok((Line::OverVar(name, expr),rem))
     }
 
+}
+
+fn only_ands(tokens: Vec<Token>) -> bool {
+    for token in tokens {
+        match token.ty {
+            TokenTy::BOr => return false,
+            _ => {}
+        }
+    }
+    true
+}
+
+fn no_and_or_or(tokens: Vec<Token>) -> bool {
+    for token in tokens {
+        match token.ty {
+            TokenTy::BAnd => return false,
+            TokenTy::BOr => return false,
+            _ => {}
+        }
+    }
+    true
 }
 
 #[cfg(test)] 

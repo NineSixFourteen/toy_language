@@ -192,6 +192,20 @@ mod tests{
         test_prog(message, Value::Int(100))
     }
 
+    #[test]
+    fn test_and_ors() -> Result<(),StrError> {
+        let message = 
+        "
+            def int main(){
+                if true && false || true && false || true  {
+                    return 100; 
+                }
+                return 10; 
+            }
+        ";
+        test_prog(message, Value::Int(100))
+    }
+
     fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
         let mut tokenizer = Tokenizer::new(message);
         tokenizer.tokenize();

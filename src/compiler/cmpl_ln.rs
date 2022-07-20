@@ -212,7 +212,7 @@ impl Compiler{
             BoolNode::NEq(    x, y) => {
                 self.compile_expr(NodeTy::Node(x.clone()),Primitive::Int);//TODO FIGURE OUT TYPES
                 self.compile_expr(NodeTy::Node(y.clone()),Primitive::Int);
-                match node {
+                match &node {
                     BoolNode::LThan(_, _)   => self.commands.push(Command::BOp(BinOp::LT)),
                     BoolNode::GThan(_, _)   => self.commands.push(Command::BOp(BinOp::GT)),
                     BoolNode::GThanEq(_, _) => self.commands.push(Command::BOp(BinOp::GTEQ)),
@@ -222,9 +222,15 @@ impl Compiler{
                     _ => panic!(),
                 }
             }
-            BoolNode::And(_x,_y) |
-            BoolNode::Or( _x, _y) => {
-                todo!()
+            BoolNode::And(x, y) |
+            BoolNode::Or( x, y) => {
+                self.compile_bool(*x.clone());
+                self.compile_bool(*y.clone());
+                match node {
+                    BoolNode::And(_,_) => self.commands.push(Command::BOp(BinOp::BAnd)),
+                    BoolNode::Or(_,_) => self.commands.push(Command::BOp(BinOp::BOr)),
+                    _ => panic!()
+                }
             }
             BoolNode::Not(_) => todo!(),
             BoolNode::TFVar(x) => {

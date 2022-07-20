@@ -175,7 +175,6 @@ impl Parser {
         Ok(vec)
     }
 
-   
 }
 
 #[cfg(test)]

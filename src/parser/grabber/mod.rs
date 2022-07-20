@@ -83,6 +83,24 @@ impl Grabber{
         ).ok_or(ParseError::ExpectButGot("Bool operator".into(), Token::new(TokenTy::Value("()".into()),0)))?;
         Ok((tokens[..pos].to_vec(), tokens[pos..].to_vec()))
     }
+
+    pub(crate) fn grab_and(tokens: Vec<Token>) -> Result<(Vec<Token> , Vec<Token>), ParseError> {
+        let pos = tokens
+        .iter()
+        .position(|x| x.ty == TokenTy::BAnd)
+        .ok_or(ParseError::ExpectButGot("And".into(),Token::new(TokenTy::Value("()".into()),0)))?;
+        Ok((tokens[..pos].to_vec(), tokens[pos+1..].to_vec()))
+    }
+
+    pub(crate) fn grab_or(tokens: Vec<Token>) -> Result<(Vec<Token>, Vec<Token>),ParseError> {
+        let pos = tokens
+        .iter()
+        .position(|x| x.ty == TokenTy::BOr)
+        .ok_or(ParseError::ExpectButGot("And".into(),Token::new(TokenTy::Value("()".into()),0)))?;
+        Ok((tokens[..pos].to_vec(), tokens[pos+1..].to_vec()))
+    }
+
+  
         
 }
 
