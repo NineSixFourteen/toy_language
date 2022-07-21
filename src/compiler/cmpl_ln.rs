@@ -1,3 +1,4 @@
+
 use crate::{parser::{Line, Node, BoolNode, NodeTy, Primitive}, stack_machine::*};
 
 use super::Compiler;
@@ -17,7 +18,7 @@ impl Compiler{
 
     pub(crate) fn compile_return(&mut self, line: Line) {
         if let Line::Return(val ) = line {
-            self.compile_expr(val,Primitive::Int); // TODO FIX 
+            self.compile_expr(val.clone(),self.clone().infer_type(val));
             self.commands.push(Command::OCmd(OtherCmd::Return));
         } else {
             unreachable!()
@@ -37,7 +38,7 @@ impl Compiler{
 
     pub(crate) fn compile_print(&mut self, line: Line)  {
         if let Line::Print(val) = line {
-            self.compile_expr(val,Primitive::Int); //TODO_Fix
+            self.compile_expr(val.clone(),self.clone().infer_type(val.clone())); 
             self.commands.push(Command::OCmd(OtherCmd::Print));
         } else {
             unreachable!()
@@ -99,7 +100,6 @@ impl Compiler{
                             }
                         }
                     }
-                    Node::LoadVar(x) => self.commands.push(Command::VCmd(VarCmd::GetVar(x))),
                     Node::FCall(x, nodes) => {
                         for (k,v) in &self.funcs{
                             print!("{} _ ",k);
@@ -117,7 +117,7 @@ impl Compiler{
                             panic!("{} __ {} __ {}", types.len(), nodes.len(), x)
                         }
                         for num in 0..types.len() {
-                            self.compile_expr(nodes.get(num).unwrap().clone(),types.get(num).unwrap().clone()); //TODO GET METHOD INFO
+                            self.compile_expr(nodes.get(num).unwrap().clone(),types.get(num).unwrap().clone());
                         }
                         self.commands.push(Command::OCmd(OtherCmd::Func(x)));
                     }
@@ -210,8 +210,8 @@ impl Compiler{
             BoolNode::LThanEq(x, y) |
             BoolNode::Eq(     x, y) |
             BoolNode::NEq(    x, y) => {
-                self.compile_expr(NodeTy::Node(x.clone()),Primitive::Int);//TODO FIGURE OUT TYPES
-                self.compile_expr(NodeTy::Node(y.clone()),Primitive::Int);
+                self.compile_expr(NodeTy::Node(x.clone()),self.clone().infer_type(NodeTy::Node(x.clone())));
+                self.compile_expr(NodeTy::Node(y.clone()),self.clone().infer_type(NodeTy::Node(y.clone())));
                 match &node {
                     BoolNode::LThan(_, _)   => self.commands.push(Command::BOp(BinOp::LT)),
                     BoolNode::GThan(_, _)   => self.commands.push(Command::BOp(BinOp::GT)),
@@ -250,6 +250,58 @@ impl Compiler{
         }
     }
 
+    fn infer_type(self, node: NodeTy) -> Primitive {
+        match node  {
+            NodeTy::Node(x) => {
+                match x {
+                    Node::Add(x,y) |
+                    Node::Sub(x, y) |
+                    Node::Mul(x, y) |
+                    Node::Div(x, y) => self.type_check(*x,*y),
+                    Node::Leaf(x) => {
+                        match x.parse::<i64>() {
+                            Ok(_) => Primitive::Int,
+                            Err(_) => {
+                                match x.parse::<f32>() {
+                                    Ok(_) => Primitive::Float,
+                                    Err(_) => {
+                                        if x.starts_with("\"") && x.ends_with("\""){
+                                            Primitive::String
+                                        } else {
+                                            self.vars.get(&x).unwrap().clone()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    Node::FCall(x, _) => self.funcs.get(&x).unwrap().last().unwrap().clone(),
+                    Node::Nothing => panic!(),
+                }
+            }
+            NodeTy::BoolNode(_) => Primitive::Boolean,
+        }
+    }
+    
+    fn type_check(self, x : Node, y : Node) -> Primitive {
+        let p = self.clone().infer_type(NodeTy::Node(x));
+        let p2 = self.infer_type(NodeTy::Node(y));
+        match (p,p2) {
+            (Primitive::Int, Primitive::Int) => Primitive::Int,
+            (Primitive::Int, Primitive::String) => Primitive::String, //TODO just strings in general
+            (Primitive::Int, Primitive::Float) => Primitive::Float,
+            (Primitive::String, Primitive::String)  | 
+            (Primitive::String, Primitive::Boolean) | 
+            (Primitive::String, Primitive::Float)   | 
+            (Primitive::String, Primitive::Char)    =>  Primitive::String,
+            (Primitive::Float, Primitive::Int) => Primitive::Float,
+            (Primitive::Float, Primitive::Float) => Primitive::Float,
+            (Primitive::Char, Primitive::Char) => Primitive::Char,
+            _ => panic!()
+        }
+    }
+    
 }
+
 
 

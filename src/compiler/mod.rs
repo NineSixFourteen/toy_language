@@ -4,11 +4,11 @@ use crate::stack_machine::{Command, Evaluator::Evaluator,Function};
 use crate::parser::{Program, Function as OtherFunction, Line, Primitive};
 #[allow(dead_code)]
 mod cmpl_ln;
-
+#[derive(Debug,Clone)]
 pub(crate) struct Compiler {
     pub commands : Vec<Command>,
     pub vars : HashMap<String,Primitive>,
-    pub funcs : HashMap<String, Vec<Primitive>>
+    pub funcs : HashMap<String, Vec<Primitive>>,
 }
 
 impl Compiler {
@@ -68,6 +68,8 @@ impl Compiler {
             Line::FCall(_) => todo!(),
         }
     }
+
+   
 
   
 

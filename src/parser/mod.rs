@@ -51,7 +51,6 @@ pub(crate) enum Node {
     Mul(Box<Node> , Box<Node>),
     Div(Box<Node> , Box<Node>),
     Leaf(String),
-    LoadVar(String),
     FCall(String, Vec<NodeTy>),
     Nothing
 }

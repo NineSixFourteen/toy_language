@@ -17,17 +17,16 @@ mod tests{
         }
         assert_eq!(x,
             Line::For(
-            Box::new(Line::InitVar(Primitive::Int, "i".into(),NodeTy::Node(Node::Leaf("0".into())))),
-            BoolNode::LThan(Node::Leaf("i".into()), Node::Leaf("15".into())),
-            Box::new(Line::OverVar("i".into(), NodeTy::Node(Node::Add(Box::new(Node::Leaf("i".into())), Box::new(Node::Leaf("1".into())))))),
-            vec![
-                Line::Print(NodeTy::Node(Node::Leaf("100".into())))
-            ]
+                Box::new(Line::InitVar(Primitive::Int, "i".into(),NodeTy::Node(Node::Leaf("0".into())))),
+                BoolNode::LThan(Node::Leaf("i".into()), Node::Leaf("15".into())),
+                Box::new(Line::OverVar("i".into(), NodeTy::Node(Node::Add(Box::new(Node::Leaf("i".into())), Box::new(Node::Leaf("1".into())))))),
+                vec![
+                    Line::Print(NodeTy::Node(Node::Leaf("100".into())))
+                ]
             )
         );
     }
     
-
     #[test]
     fn test_if() {
         let string = "if i < 10 {Print 100;}";
@@ -205,6 +204,24 @@ mod tests{
         ";
         test_prog(message, Value::Int(100))
     }
+
+    #[test]
+
+    fn test_other_type() -> Result<(),StrError>{
+        let message = 
+        "
+            def int main() {
+                Print lol(10);
+                return 100;
+            }
+
+            def float lol(float x ){
+                return x + 2.5 + 4;
+            }
+        ";
+        test_prog(message, Value::Int(100))
+    }
+
 
     fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
         let mut tokenizer = Tokenizer::new(message);
