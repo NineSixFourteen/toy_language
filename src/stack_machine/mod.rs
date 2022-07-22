@@ -27,7 +27,8 @@ pub(crate) enum Value {
     String(String),
     Boolean(bool),
     Float(f32),
-    Char(char)
+    Char(char),
+    Array(Vec<Value>)
 }
 
 impl PartialEq for Value {
@@ -51,9 +52,7 @@ impl Eq for Value {
 pub(crate) enum StrError {
     NoSuchVar,
     CommandOutOfBounds,
-    //ErrorBothSidesNotInt,
     NothingToPop,
-    //ErrorOne,
     GOTOZero,
     GOTOOutOfBounds,
     OperandNotSupported
@@ -108,5 +107,8 @@ pub(crate) enum OtherCmd {
     ThrowError(StrError),
     Func(String),
     Push(Value),
-    Return 
+    Return,
+    MakeArray(usize),
+    GetElem(usize),
+    SetElem(usize),
 }

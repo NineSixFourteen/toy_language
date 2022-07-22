@@ -3,7 +3,7 @@ pub(crate) enum TokenTy {
     // Line Types
     Print, For, If, Else, Return, 
     // Primitives
-    Int, String, Boolean, Char, Float,  
+    Int, String, Boolean, Char, Float, Array, 
     // Seperators
     SemiColan, Comma, Equal, 
     // Seperators - Brackets 
@@ -85,7 +85,7 @@ impl<'a> Tokenizer<'a> {
                 match x {
                     ';' => self.match_keyword_and(TokenTy::SemiColan),
                     ',' => self.match_keyword_and(TokenTy::Comma),
-                    '[' => self.match_keyword_and(TokenTy::LSquare),
+                    '[' => self.match_keyword_and_check(']',TokenTy::Array,TokenTy::LSquare),
                     ']' => self.match_keyword_and(TokenTy::RSquare),
                     '+' => self.match_keyword_and_check('+', TokenTy::Inc, TokenTy::Plus),
                     '-' => self.match_keyword_and_check('-', TokenTy::Dec, TokenTy::Minus),
@@ -110,9 +110,13 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn match_word(&mut self, word :&str ){
-        let wo = word.trim();
-        match wo {
+    fn match_word(&mut self, mut word :&str ){
+        word = word.trim();
+        if word.ends_with("[]"){
+            self.push_token(TokenTy::Array);
+            word = &word[..word.len()-2];
+        }
+        match word {
             "Print"   => self.push_token(TokenTy::Print),
             "int"     => self.push_token(TokenTy::Int),
             "float"   => self.push_token(TokenTy::Float),
@@ -189,7 +193,7 @@ mod tests {
     }
     #[test]
     fn token_test_3(){
-        let str = "Print for int String if else return ";
+        let str = "Print for int String if else return int[] ";
         let mut tk = Tokenizer::new(str);
         tk.tokenize();
         test_helper(tk.tokens , 
@@ -200,7 +204,9 @@ mod tests {
             TokenTy::String,
             TokenTy::If,
             TokenTy::Else,
-            TokenTy::Return
+            TokenTy::Return,
+            TokenTy::Int,
+            TokenTy::Array
         ])
     }
 

@@ -140,6 +140,24 @@ impl Evaluator {
                                 _ => panic!()
                             }
                         }
+                        OtherCmd::MakeArray(x) => {
+                            let mut val = Vec::new();
+                            for _ in 0..x {
+                                val.push(self.pop()?);
+                            }
+                            self.stack.push(Value::Array(val))
+                        }
+                        OtherCmd::GetElem(x) => {
+                            let val = self.pop()?;
+                            if let Value::Array(z) = val  {
+                                self.stack.push(z.get(x).unwrap().clone()); //add errors
+                            } else {
+                                panic!() //add error
+                            }
+                        }
+                        OtherCmd::SetElem(_x) => {
+
+                        }
                     }
                 }
             } 
@@ -155,7 +173,22 @@ impl Evaluator {
             Value::String(x) => println!(">{}",x),
             Value::Boolean(x) => println!(">{}",x),
             Value::Float(x) => println!(">{}",x),
-            Value::Char(x) => println!(">{}",x)
+            Value::Char(x) => println!(">{}",x),
+            Value::Array(x) => {
+                print!(">[");
+                for y in x {
+                    match y {
+                        Value::Nothing => todo!(),
+                        Value::Int(x) => print!("{}, ",x),
+                        Value::String(x) => print!("{}, ",x),
+                        Value::Boolean(x) => print!("{}, ",x),
+                        Value::Float(x) => print!("{}, ",x),
+                        Value::Char(x) => print!("{}, ",x),
+                        Value::Array(x) => self.printValue(Value::Array(x))?,
+                    }
+                }
+                println!("]")
+            }
         }
         Ok(())
     }

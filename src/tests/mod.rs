@@ -3,7 +3,7 @@ mod tests{
         use std::collections::HashMap;
         use crate::{parser::{NodeTy, tokenizer::Tokenizer, Parser, Line, Node, BoolNode, Primitive}, stack_machine::{StrError, Value, Evaluator::Evaluator}, compiler::Compiler};
     
-        #[test]
+    #[test]
     fn test_for() {
         let string = "for(int i = 0; i < 15;i = i + 1) {Print 100;}";
         let mut tokenizer = Tokenizer::new(string);
@@ -220,6 +220,19 @@ mod tests{
             }
         ";
         test_prog(message, Value::Int(100))
+    }
+
+    #[test] 
+    fn test_arrays() -> Result<(), StrError> {
+        let message = 
+        "
+            def int main() {
+                int[] arr = [1,2,3,4,5];
+                Print arr; 
+                return 10;
+            }
+        ";
+        test_prog(message, Value::Int(10))
     }
 
 

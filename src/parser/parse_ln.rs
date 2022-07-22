@@ -55,26 +55,44 @@ impl Parser {
         Ok((Line::Return(expr), rem))
     }
 
-    pub(crate) fn parse_init_var( tokens:Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
-        let first = tokens.first().unwrap().clone();
-        let n = tokens.get(1).unwrap().clone();
+    pub(crate) fn parse_array_init(tokens: Vec<Token>) -> Result<(Line, Vec<Token>), ParseError> {
+        let ty = tokens.get(0).unwrap().clone();
+        let name = tokens.get(2).unwrap().clone();
         let (line, rem) = Grabber::grab_line(tokens)?;
-        let expr = Parser::parse_expr(line[3..].to_vec())?;
-        let name: String;
-        match n.ty{
-            TokenTy::Value(x) => name = x,
-            _ => {return Err(ParseError::ExpectButGot("Value".into(), n));}
+        let (parts , _) = Grabber::grab_brac(line[4..].to_vec())?;
+        let elems = Grabber::sep_on_comma(parts)?; 
+        let mut elm = Vec::new();
+        for el in elems {
+            elm.push(Parser::parse_expr(el)?);
+        } 
+        let name = Parser::extrct_str(name)?;
+        let ty = Parser::extrct_prm(ty)?;
+        Ok((Line::InitVar(ty, name, NodeTy::Node(Node::Array(elm))),rem))
+    }   
+
+    pub(crate) fn parse_init_var( tokens:Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
+        if tokens.get(1).unwrap().ty == TokenTy::Array {
+            Parser::parse_array_init(tokens)
+        } else {
+            let first = tokens.first().unwrap().clone();
+            let n = tokens.get(1).unwrap().clone();
+            let (line, rem) = Grabber::grab_line(tokens)?;
+            let expr = Parser::parse_expr(line[3..].to_vec())?;
+            let name: String;
+            match n.ty{
+                TokenTy::Value(x) => name = x,
+                _ => {return Err(ParseError::ExpectButGot("Value".into(), n));}
+            }
+            let ty = match first.ty {
+                TokenTy::Int => Primitive::Int,
+                TokenTy::String => Primitive::String,
+                TokenTy::Float =>  Primitive::Float,
+                TokenTy::Char => Primitive::Char,
+                TokenTy::Boolean => Primitive::Boolean,
+                _ => {return Err(ParseError::ExpectButGot("Primitive/type".into(), first));}
+            };
+            Ok((Line::InitVar(ty, name , expr), rem))
         }
-    
-        let ty = match first.ty {
-            TokenTy::Int => Primitive::Int,
-            TokenTy::String => Primitive::String,
-            TokenTy::Float =>  Primitive::Float,
-            TokenTy::Char => Primitive::Char,
-            TokenTy::Boolean => Primitive::Boolean,
-            _ => {return Err(ParseError::ExpectButGot("Primitive/type".into(), first));}
-        };
-        Ok((Line::InitVar(ty, name , expr), rem))
     }
 
     pub(crate)

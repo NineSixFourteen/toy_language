@@ -98,6 +98,7 @@ impl Compiler{
                             Primitive::Char => {
                                 self.commands.push(Command::OCmd(OtherCmd::Push(Value::Char(x.chars().nth(1).unwrap()))))
                             }
+                            Primitive::Array(x) => todo!(),
                         }
                     }
                     Node::FCall(x, nodes) => {
@@ -122,6 +123,13 @@ impl Compiler{
                         self.commands.push(Command::OCmd(OtherCmd::Func(x)));
                     }
                     Node::Nothing => panic!(),
+                    Node::Array(x) => {
+                        let size = x.len();
+                        for y in x {
+                            self.compile_expr(y.clone(), self.clone().infer_type(y.clone()));//todo stuff
+                        }
+                        self.commands.push(Command::OCmd(OtherCmd::MakeArray(size)));
+                    }
                 }
             }
             NodeTy::BoolNode(z) => {
@@ -277,6 +285,7 @@ impl Compiler{
                     },
                     Node::FCall(x, _) => self.funcs.get(&x).unwrap().last().unwrap().clone(),
                     Node::Nothing => panic!(),
+                    Node::Array(x) => Primitive::Array(Box::new(Primitive::Int))//TODO,
                 }
             }
             NodeTy::BoolNode(_) => Primitive::Boolean,

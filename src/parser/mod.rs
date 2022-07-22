@@ -25,7 +25,8 @@ pub(crate) enum Primitive {
     String,
     Boolean,
     Float, 
-    Char
+    Char,
+    Array(Box<Primitive>)
 }
 #[derive(PartialEq, Debug, Clone)]
 pub(crate) enum NodeTy {
@@ -52,6 +53,7 @@ pub(crate) enum Node {
     Div(Box<Node> , Box<Node>),
     Leaf(String),
     FCall(String, Vec<NodeTy>),
+    Array(Vec<NodeTy>),
     Nothing
 }
 
@@ -76,7 +78,6 @@ pub(crate) enum ParseError {
     NotValidParamter,
     CantFindToken(Token),
     NoMainFunction
-
 } 
 
 pub(crate) struct Parser {}
@@ -173,6 +174,8 @@ impl Parser {
         }
         Ok(vec)
     }
+
+  
 
 }
 
