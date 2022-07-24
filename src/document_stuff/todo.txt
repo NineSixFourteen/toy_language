@@ -6,15 +6,10 @@ Compiler
 
 Parser
 1. Make it work 
-2. Add errors
+2. Add more errors
 
 Stack_Machine 
 1. Make it work 
-2. Make it so u can use variables after they are declared. 
 
 Tests
 1. Make the tests 
-
-Main 
-1. Connect all the parts
-2. Make it read in files 

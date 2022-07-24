@@ -57,9 +57,10 @@ impl Compiler{
         if let Line::OverArray(name, idx ,node ) = line {
             let z = self.vars.get(&name).unwrap();
             self.compile_expr(node,z.clone());
-            self.commands.push(Command::OCmd(OtherCmd::Push(Value::Int(idx))));
-            self.commands.push(Command::VCmd(VarCmd::GetVar(name)));
+            self.compile_expr(NodeTy::Node(idx), Primitive::Int);
+            self.commands.push(Command::VCmd(VarCmd::GetVar(name.clone())));
             self.commands.push(Command::OCmd(OtherCmd::SetElem));
+            self.commands.push(Command::VCmd(VarCmd::SetVar(name)));
         }
     }
 

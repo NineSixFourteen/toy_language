@@ -240,9 +240,25 @@ mod tests{
         "
             def int main() {
                 boolean[] arr = [true, false, true, 10,10.4];
-                Print arr[0]
-                ;
+                Print arr[0];
+                Print id(arr[3]);
                 return 10;
+            }
+
+            def int id(int x) {
+                return x ;
+            }
+        "; 
+        test_prog(message, Value::Int(10))
+    }
+    #[test] 
+    fn test_over_array() -> Result<(), StrError> {
+        let message = 
+        "
+            def int main() {
+                int[] arr = [0,2,3,4];
+                arr[0] = 10 ; 
+                return arr[0];
             }
         "; 
         test_prog(message, Value::Int(10))

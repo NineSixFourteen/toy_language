@@ -40,7 +40,7 @@ pub(crate) enum Line {
     FCall(Node),
     InitVar(Primitive,String,NodeTy),
     OverVar(String, NodeTy),
-    OverArray(String,i64,NodeTy),
+    OverArray(String,Node,NodeTy),
     For(Box<Line> , BoolNode, Box<Line>, Vec<Line>),
     If(BoolNode, Vec<Line>,Vec<Line>),
     Return(NodeTy)
@@ -85,8 +85,7 @@ pub(crate) enum ParseError {
 pub(crate) struct Parser {}
 
 impl Parser {
-
-    pub fn parse(tokens: Vec<Token> ) -> Result<Program,ParseError>{
+    pub fn parse(tokens: Vec<Token> ) -> Result<Program,ParseError> {
         let (_, funcs) = Parser::parse_fns(tokens)?;
         let pos = funcs.iter().position(|x| x.name.eq("main".into())).ok_or(ParseError::NoMainFunction)?;
         Ok(Program { 
@@ -143,7 +142,6 @@ impl Parser {
             TokenTy::Print => Parser::parse_print(tokens),
             TokenTy::For => Parser::parse_for(tokens),
             TokenTy::If => Parser::parse_if(tokens),
-            TokenTy::Else => todo!(),
             TokenTy::Return => Parser::parse_return(tokens),
             TokenTy::Int  | TokenTy::String  |
             TokenTy::Char | TokenTy::Boolean | 
@@ -159,6 +157,7 @@ impl Parser {
         match tokens.get(1).unwrap().ty {
             TokenTy::LBrac => Parser::parse_fcall(tokens),
             TokenTy::Equal => Parser::parse_overwrite(tokens),
+            TokenTy::LSquare => Parser::parse_over_array(tokens),
             _ => panic!("Unkown line {:?}", tokens.get(1).unwrap())
         }
     }
@@ -177,9 +176,7 @@ impl Parser {
         Ok(vec)
     }
 
-  
-  
-
+    
 }
 
 #[cfg(test)]

@@ -161,7 +161,20 @@ impl Evaluator {
                             }
                         }
                         OtherCmd::SetElem => {
-                            todo!()
+                            let arr = self.pop()?;
+                            let idx = self.pop()?;
+                            let val = self.pop()?;
+                            if let Value::Array(mut x) = arr{
+                                if let Value::Int(y) = idx {
+                                    x[y as usize] = val;
+                                    self.stack.push(Value::Array(x));
+                                } else {
+                                    panic!()
+                                }
+                            } else {
+                                println!("{:?}",arr);
+                                panic!()
+                            }
                         }
                     }
                 }

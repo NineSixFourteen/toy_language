@@ -55,6 +55,16 @@ impl Parser {
         Ok((Line::Return(expr), rem))
     }
 
+    pub(crate) fn parse_over_array(tokens: Vec<Token>) -> Result<(Line, Vec<Token>), ParseError> {
+        let (line, rem) = Grabber::grab_line(tokens)?;
+        let name = line.first().unwrap();
+        let name = Parser::extrct_str(name.clone())?;
+        let (node , after) = Grabber::grab_brac(line[1..].to_vec())?;
+        let node = Parser::parse_expr_nb(node)?;
+        let val = Parser::parse_expr(after[1..].to_vec())?;
+        Ok((Line::OverArray(name, node, val),rem))
+    }
+
     pub(crate) fn parse_array_init(tokens: Vec<Token>) -> Result<(Line, Vec<Token>), ParseError> {
         let ty = tokens.get(0).unwrap().clone();
         let name = tokens.get(2).unwrap().clone();
