@@ -109,6 +109,6 @@ pub(crate) enum OtherCmd {
     Push(Value),
     Return,
     MakeArray(usize),
-    GetElem(usize),
-    SetElem(usize),
+    GetElem,
+    SetElem,
 }

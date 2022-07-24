@@ -40,6 +40,7 @@ pub(crate) enum Line {
     FCall(Node),
     InitVar(Primitive,String,NodeTy),
     OverVar(String, NodeTy),
+    OverArray(String,i64,NodeTy),
     For(Box<Line> , BoolNode, Box<Line>, Vec<Line>),
     If(BoolNode, Vec<Line>,Vec<Line>),
     Return(NodeTy)
@@ -53,7 +54,8 @@ pub(crate) enum Node {
     Div(Box<Node> , Box<Node>),
     Leaf(String),
     FCall(String, Vec<NodeTy>),
-    Array(Vec<NodeTy>),
+    GetElem(String, Box<Node>),
+    ArrayDec(Vec<NodeTy>),
     Nothing
 }
 
@@ -175,6 +177,7 @@ impl Parser {
         Ok(vec)
     }
 
+  
   
 
 }

@@ -47,15 +47,25 @@ impl Compiler{
 
     pub(crate) fn compile_overwrite(&mut self, line : Line) {
         if let Line::OverVar(x, y) = line {
-        let z = self.vars.get(&x).unwrap();
+            let z = self.vars.get(&x).unwrap();
             self.compile_expr(y, z.clone());
             self.commands.push(Command::VCmd(VarCmd::SetVar(x)));
         }   
     }
 
+    pub(crate) fn compile_over_array(&mut self, line: Line) {
+        if let Line::OverArray(name, idx ,node ) = line {
+            let z = self.vars.get(&name).unwrap();
+            self.compile_expr(node,z.clone());
+            self.commands.push(Command::OCmd(OtherCmd::Push(Value::Int(idx))));
+            self.commands.push(Command::VCmd(VarCmd::GetVar(name)));
+            self.commands.push(Command::OCmd(OtherCmd::SetElem));
+        }
+    }
+
 
     fn compile_expr(&mut self, node : NodeTy, ty : Primitive)  {
-        match node {
+        match node.clone() {
             NodeTy::Node(pol) => {
                 match pol.clone() {
                     Node::Add(x, y) | 
@@ -98,7 +108,7 @@ impl Compiler{
                             Primitive::Char => {
                                 self.commands.push(Command::OCmd(OtherCmd::Push(Value::Char(x.chars().nth(1).unwrap()))))
                             }
-                            Primitive::Array(x) => todo!(),
+                            Primitive::Array(x) => self.compile_expr(node.clone(), *x),
                         }
                     }
                     Node::FCall(x, nodes) => {
@@ -123,12 +133,17 @@ impl Compiler{
                         self.commands.push(Command::OCmd(OtherCmd::Func(x)));
                     }
                     Node::Nothing => panic!(),
-                    Node::Array(x) => {
+                    Node::ArrayDec(x) => {
                         let size = x.len();
                         for y in x {
                             self.compile_expr(y.clone(), self.clone().infer_type(y.clone()));//todo stuff
                         }
                         self.commands.push(Command::OCmd(OtherCmd::MakeArray(size)));
+                    }
+                    Node::GetElem(name, idx) => {
+                        self.commands.push(Command::VCmd(VarCmd::GetVar(name)));
+                        self.compile_expr(NodeTy::Node(*idx), Primitive::Int);
+                        self.commands.push(Command::OCmd(OtherCmd::GetElem));
                     }
                 }
             }
@@ -240,7 +255,7 @@ impl Compiler{
                     _ => panic!()
                 }
             }
-            BoolNode::Not(_) => todo!(),
+            BoolNode::Not(_x) => todo!(),
             BoolNode::TFVar(x) => {
                 match x.as_str() {
                     "true"  => self.commands.push(Command::OCmd(OtherCmd::Push(Value::Boolean(true)))),
@@ -252,7 +267,6 @@ impl Compiler{
                             panic!()
                         }
                     }
-                    
                 }
             }
         }
@@ -267,16 +281,26 @@ impl Compiler{
                     Node::Mul(x, y) |
                     Node::Div(x, y) => self.type_check(*x,*y),
                     Node::Leaf(x) => {
-                        match x.parse::<i64>() {
-                            Ok(_) => Primitive::Int,
-                            Err(_) => {
-                                match x.parse::<f32>() {
-                                    Ok(_) => Primitive::Float,
+                        match x.as_str() {
+                            "true" => Primitive::Boolean,
+                            "false" => Primitive::Boolean,
+                            _ => {
+                                match x.parse::<i64>() {
+                                    Ok(_) => Primitive::Int,
                                     Err(_) => {
-                                        if x.starts_with("\"") && x.ends_with("\""){
-                                            Primitive::String
-                                        } else {
-                                            self.vars.get(&x).unwrap().clone()
+                                        match x.parse::<f32>() {
+                                            Ok(_) => Primitive::Float,
+                                            Err(_) => {
+                                                if x.starts_with("\"") && x.ends_with("\""){
+                                                    Primitive::String
+                                                } else {
+                                                    let z = self.vars.get(&x);
+                                                    match z {
+                                                        Some(x) => x.clone(),
+                                                        None => {println!("{}",x);panic!()}
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -285,7 +309,15 @@ impl Compiler{
                     },
                     Node::FCall(x, _) => self.funcs.get(&x).unwrap().last().unwrap().clone(),
                     Node::Nothing => panic!(),
-                    Node::Array(x) => Primitive::Array(Box::new(Primitive::Int))//TODO,
+                    Node::ArrayDec(_x) => todo!(),
+                    Node::GetElem(name, _) => {
+                        let x = self.vars.get(&name).unwrap().clone();
+                        if let Primitive::Array(z) = x {
+                            *z
+                        }else {
+                            panic!()
+                        }
+                    }
                 }
             }
             NodeTy::BoolNode(_) => Primitive::Boolean,

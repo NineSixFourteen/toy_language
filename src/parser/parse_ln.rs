@@ -67,7 +67,7 @@ impl Parser {
         } 
         let name = Parser::extrct_str(name)?;
         let ty = Parser::extrct_prm(ty)?;
-        Ok((Line::InitVar(ty, name, NodeTy::Node(Node::Array(elm))),rem))
+        Ok((Line::InitVar(Primitive::Array(Box::new(ty)), name, NodeTy::Node(Node::ArrayDec(elm))),rem))
     }   
 
     pub(crate) fn parse_init_var( tokens:Vec<Token>) -> Result<(Line, Vec<Token>),ParseError> {
@@ -131,6 +131,9 @@ impl Parser {
             TokenTy::LBrac => {
                 (lhs, tokens) = Parser::parse_func(tokens)?;
             }
+            TokenTy::LSquare => {
+                (lhs, tokens) = Parser::parse_array_get(tokens)?;
+            }
             _ => {
                 lhs = Parser::parse_val(tokens.first().unwrap().clone())?;
                 tokens =  tokens[1..].to_vec();
@@ -186,6 +189,9 @@ impl Parser {
             TokenTy::LBrac => {
                 (lhs, tokens) = Parser::parse_func(tokens)?;
             }
+            TokenTy::LSquare => {
+                (lhs, tokens) = Parser::parse_array_get(tokens)?;
+            }
             _ => {
                 lhs = Parser::parse_val(tokens.first().unwrap().clone())?;
                 tokens =  tokens[1..].to_vec();
@@ -212,6 +218,14 @@ impl Parser {
         }
         Ok((Node::FCall(name, nodes), rem))
     }
+
+    pub(crate) fn parse_array_get(tokens: Vec<Token>) -> Result<(Node, Vec<Token>),ParseError> {
+        let name = Parser::extrct_str(tokens.first().unwrap().clone())?;
+        let (nd, rem) = Grabber::grab_brac(tokens[1..].to_vec())?;
+        let node = Parser::parse_expr_nb(nd)?;
+        Ok((Node::GetElem(name, Box::new(node)),rem))
+    }
+
 
     fn parse_param( tokens : Vec<Token> ) -> Result<Vec<NodeTy>,ParseError> {
         let ndes = Grabber::sep_on_comma(tokens)?;

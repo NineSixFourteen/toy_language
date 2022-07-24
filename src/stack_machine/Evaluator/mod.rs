@@ -145,18 +145,23 @@ impl Evaluator {
                             for _ in 0..x {
                                 val.push(self.pop()?);
                             }
+                            val.reverse();
                             self.stack.push(Value::Array(val))
                         }
-                        OtherCmd::GetElem(x) => {
+                        OtherCmd::GetElem => {
                             let val = self.pop()?;
-                            if let Value::Array(z) = val  {
-                                self.stack.push(z.get(x).unwrap().clone()); //add errors
+                            let val2 = self.pop()?;
+                            if let Value::Array(z) = val2  {
+                                if let Value::Int(x) = val {
+                                    self.stack.push(z.get(x as usize).unwrap().clone()); //add errors
+                                }
                             } else {
+                                println!("{:?}",val);
                                 panic!() //add error
                             }
                         }
-                        OtherCmd::SetElem(_x) => {
-
+                        OtherCmd::SetElem => {
+                            todo!()
                         }
                     }
                 }
@@ -176,7 +181,7 @@ impl Evaluator {
             Value::Char(x) => println!(">{}",x),
             Value::Array(x) => {
                 print!(">[");
-                for y in x {
+                for y in x[..x.len()-1].to_vec() {
                     match y {
                         Value::Nothing => todo!(),
                         Value::Int(x) => print!("{}, ",x),
@@ -187,7 +192,19 @@ impl Evaluator {
                         Value::Array(x) => self.printValue(Value::Array(x))?,
                     }
                 }
-                println!("]")
+                match  x.last(){
+                    Some(v) => match v  {
+                        Value::Nothing => todo!(),
+                        Value::Int(x) => print!("{}",x),
+                        Value::String(x) => print!("{}",x),
+                        Value::Boolean(x) => print!("{}",x),
+                        Value::Float(x) => print!("{}",x),
+                        Value::Char(x) => print!("{}",x),
+                        Value::Array(x) => self.printValue(Value::Array(x.clone()))?,
+                    },
+                    None => todo!(),
+                }
+                println!("]",);
             }
         }
         Ok(())

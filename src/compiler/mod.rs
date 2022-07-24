@@ -16,9 +16,6 @@ impl Compiler {
         match prog {
             Program{ main, methods } => {
                 let l : HashMap<String,Vec<Primitive>> = get_func_desc(methods.clone()); 
-                for (k, _v) in &l {
-                    println!("{}",k)
-                }
                 let compiler = Compiler{commands : vec![], vars :  HashMap::new(), funcs : l};
                 let z : HashMap<String, Function> = methods
                 .iter()
@@ -66,8 +63,11 @@ impl Compiler {
             Line::If(_, _,_) => self.compile_if(line),
             Line::Return(_) => self.compile_return(line),
             Line::FCall(_) => todo!(),
+            Line::OverArray(_, _, _) => self.compile_over_array(line),
         }
     }
+
+ 
 
    
 

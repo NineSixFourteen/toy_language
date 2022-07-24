@@ -234,6 +234,19 @@ mod tests{
         ";
         test_prog(message, Value::Int(10))
     }
+    #[test] 
+    fn test_other_arr() -> Result<(), StrError> {
+        let message = 
+        "
+            def int main() {
+                boolean[] arr = [true, false, true, 10,10.4];
+                Print arr[0]
+                ;
+                return 10;
+            }
+        "; 
+        test_prog(message, Value::Int(10))
+    }
 
 
     fn test_prog(message : &str, val : Value) -> Result<(),StrError> {
